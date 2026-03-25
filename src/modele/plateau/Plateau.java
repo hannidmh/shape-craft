@@ -5,19 +5,18 @@
  */
 package modele.plateau;
 
-
-
 import java.util.HashMap;
 import java.util.Observable;
 
+import modele.item.ItemShape;
 
 public class Plateau extends Observable implements Runnable {
 
     public static final int SIZE_X = 16;
     public static final int SIZE_Y = 16;
 
-
-    private HashMap<Case, Point> map = new HashMap<Case, Point>(); // permet de récupérer la position d'une case à partir de sa référence
+    private HashMap<Case, Point> map = new HashMap<Case, Point>(); // permet de récupérer la position d'une case à
+                                                                   // partir de sa référence
     private Case[][] grilleCases = new Case[SIZE_X][SIZE_Y]; // permet de récupérer une case à partir de ses coordonnées
 
     public Plateau() {
@@ -29,10 +28,9 @@ public class Plateau extends Observable implements Runnable {
     }
 
     public Case getCase(Case source, Direction d) {
-        
-        Point p = map.get(source);
-        return caseALaPosition(new Point(p.x+d.dx, p.y+d.dy));
 
+        Point p = map.get(source);
+        return caseALaPosition(new Point(p.x + d.dx, p.y + d.dy));
 
     }
 
@@ -45,6 +43,12 @@ public class Plateau extends Observable implements Runnable {
             }
 
         }
+        // Étape A : On récupère une case précise
+        Case maCase = grilleCases[5][5];
+        // Étape B : On fabrique le gisement désiré ("O" représente un cercle)
+        ItemShape monGisement = new ItemShape("O-O-O-O-");
+        // Étape C : On installe le gisement dans la case
+        maCase.setGisement(monGisement);
 
     }
 
@@ -53,7 +57,6 @@ public class Plateau extends Observable implements Runnable {
         setChanged();
         notifyObservers();
     }
-
 
     /**
      * Indique si p est contenu dans la grille
@@ -70,7 +73,6 @@ public class Plateau extends Observable implements Runnable {
         }
         return retour;
     }
-
 
     @Override
     public void run() {

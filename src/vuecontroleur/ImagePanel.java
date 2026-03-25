@@ -11,7 +11,6 @@ public class ImagePanel extends JPanel {
     private Image imgFront;
     private ItemShape shape;
 
-
     public void setShape(ItemShape _shape) {
         shape = _shape;
     }
@@ -23,28 +22,27 @@ public class ImagePanel extends JPanel {
     public void setFront(Image _imgFront) {
         imgFront = _imgFront;
     }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        final int bordure= 1;
+        final int bordure = 1;
         final int xBack = bordure;
         final int yBack = bordure;
-        final int widthBack = getWidth() - bordure*2;
-        final int heigthBack = getHeight() - bordure*2;
+        final int widthBack = getWidth() - bordure * 2;
+        final int heigthBack = getHeight() - bordure * 2;
 
         final int subPartWidth = widthBack / 4;
         final int subPartHeigth = heigthBack / 4;
 
         final int xFront = bordure + subPartWidth;
         final int yFront = bordure + subPartHeigth;
-        final int widthFront = subPartWidth*2;
-        final int heigthFront = subPartHeigth*2;
-
+        final int widthFront = subPartWidth * 2;
+        final int heigthFront = subPartHeigth * 2;
 
         // cadre
         g.drawRoundRect(bordure, bordure, widthBack, heigthBack, bordure, bordure);
-
 
         if (imgBackground != null) {
 
@@ -55,7 +53,6 @@ public class ImagePanel extends JPanel {
             g.drawImage(imgFront, xFront, yFront, widthFront, heigthFront, this);
         }
 
-
         if (shape != null) {
 
             // TODO autres layers
@@ -64,37 +61,32 @@ public class ImagePanel extends JPanel {
 
             for (int i = 0; i < 4; i++) {
 
-                    SubShape ss = tabS[i];
+                SubShape ss = tabS[i];
 
-                    if (ss != SubShape.None) {
+                if (ss != SubShape.None) {
 
-                        switch (tabC[i]) {
-                            case modele.item.Color.Red:
-                                g.setColor(Color.RED);
-                                break;
-                            case modele.item.Color.White:
-                                g.setColor(Color.WHITE);
-                                break;
-                            // TODO autres couleurs
-                        }
+                    switch (tabC[i]) {
+                        case Red:
+                            g.setColor(Color.RED);
+                            break;
+                        case White:
+                            g.setColor(Color.WHITE);
+                            break;
+                        // TODO autres couleurs
+                    }
 
-                        switch (ss) {
-                            case SubShape.Carre:
-                                g.fillRect(xFront + (widthFront / 2) * ((i >> 1) ^ 1), yFront + (heigthFront / 2) * ((i & 1) ^ ((i >> 1) & 1)), widthFront / 2, heigthFront / 2);
-                                break;
-                            // TODO autres formes
-                        }
+                    switch (ss) {
+                        case Carre:
+                            g.fillRect(xFront + (widthFront / 2) * ((i >> 1) ^ 1),
+                                    yFront + (heigthFront / 2) * ((i & 1) ^ ((i >> 1) & 1)), widthFront / 2,
+                                    heigthFront / 2);
+                            break;
+                        // TODO autres formes
                     }
                 }
             }
-
         }
-
-
 
     }
 
-
-
-
-
+}
