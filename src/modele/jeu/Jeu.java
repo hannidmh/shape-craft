@@ -5,18 +5,17 @@ import modele.plateau.Plateau;
 import modele.plateau.Poubelle;
 import modele.plateau.Tapis;
 import modele.item.ItemShape;
+import modele.plateau.ZoneLivraison;
 
-public class Jeu extends Thread{
+public class Jeu extends Thread {
     private Plateau plateau;
-
-
-
 
     public Jeu() {
         plateau = new Plateau();
 
         plateau.setMachine(5, 10, new Mine());
-        plateau.setMachine(5, 5, new Poubelle());
+        plateau.setMachine(8, 8, new Poubelle());
+        plateau.setMachine(5, 5, new ZoneLivraison());
 
         start();
 
@@ -25,7 +24,6 @@ public class Jeu extends Thread{
     public Plateau getPlateau() {
         return plateau;
     }
-
 
     public void press(int x, int y) {
 
@@ -36,14 +34,13 @@ public class Jeu extends Thread{
         plateau.setMachine(x, y, new Tapis());
     }
 
-
     public void run() {
         jouerPartie();
     }
 
     public void jouerPartie() {
 
-        while(true) {
+        while (true) {
             try {
                 plateau.run();
                 Thread.sleep(1000);
@@ -54,6 +51,5 @@ public class Jeu extends Thread{
         }
 
     }
-
 
 }

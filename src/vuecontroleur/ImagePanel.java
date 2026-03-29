@@ -10,9 +10,14 @@ public class ImagePanel extends JPanel {
     private Image imgBackground;
     private Image imgFront;
     private ItemShape shape;
+    private boolean hasGisement = false; // true si la case a un gisement
 
     public void setShape(ItemShape _shape) {
         shape = _shape;
+    }
+
+    public void setGisement(boolean _hasGisement) {
+        hasGisement = _hasGisement;
     }
 
     public void setBackground(Image _imgBackground) {
@@ -51,6 +56,12 @@ public class ImagePanel extends JPanel {
 
         if (imgFront != null) {
             g.drawImage(imgFront, xFront, yFront, widthFront, heigthFront, this);
+        }
+
+        // Dessin du gisement : cercle gris en fond de case
+        if (hasGisement) {
+            g.setColor(new Color(180, 180, 180, 160));
+            g.fillOval(xBack + widthBack / 4, yBack + heigthBack / 4, widthBack / 2, heigthBack / 2);
         }
 
         if (shape != null) {

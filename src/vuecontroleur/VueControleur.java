@@ -7,21 +7,24 @@ import java.util.Observable;
 import java.util.Observer;
 import javax.swing.*;
 
-
 import modele.item.Item;
 import modele.item.ItemColor;
 import modele.item.ItemShape;
 import modele.jeu.Jeu;
 import modele.plateau.*;
 
-
-/** Cette classe a deux fonctions :
- *  (1) Vue : proposer une représentation graphique de l'application (cases graphiques, etc.)
- *  (2) Controleur : écouter les évènements clavier et déclencher le traitement adapté sur le modèle
+/**
+ * Cette classe a deux fonctions :
+ * (1) Vue : proposer une représentation graphique de l'application (cases
+ * graphiques, etc.)
+ * (2) Controleur : écouter les évènements clavier et déclencher le traitement
+ * adapté sur le modèle
  *
  */
 public class VueControleur extends JFrame implements Observer {
-    private Plateau plateau; // référence sur une classe de modèle : permet d'accéder aux données du modèle pour le rafraichissement, permet de communiquer les actions clavier (ou souris)
+    private Plateau plateau; // référence sur une classe de modèle : permet d'accéder aux données du modèle
+                             // pour le rafraichissement, permet de communiquer les actions clavier (ou
+                             // souris)
     private Jeu jeu;
     private final int sizeX; // taille de la grille affichée
     private final int sizeY;
@@ -31,13 +34,14 @@ public class VueControleur extends JFrame implements Observer {
     private Image icoTapisDroite;
     private Image icoPoubelle;
     private Image icoMine;
+    private Image icoLivraison;
 
     private JComponent grilleIP;
 
     private boolean mousePressed = false; // permet de mémoriser l'état de la souris
 
-    private ImagePanel[][] tabIP; // cases graphique (au moment du rafraichissement, chaque case va être associée à une icône background et front, suivant ce qui est présent dans le modèle)
-
+    private ImagePanel[][] tabIP; // cases graphique (au moment du rafraichissement, chaque case va être associée
+                                  // à une icône background et front, suivant ce qui est présent dans le modèle)
 
     public VueControleur(Jeu _jeu) {
         jeu = _jeu;
@@ -54,18 +58,15 @@ public class VueControleur extends JFrame implements Observer {
 
     }
 
-
     private void chargerLesIcones() {
 
         icoRouge = new ImageIcon("./data/sprites/colors/blue.png").getImage();
         icoTapisDroite = new ImageIcon("./data/sprites/buildings/belt_top.png").getImage();
-
         icoPoubelle = new ImageIcon("./data/sprites/buildings/trash.png").getImage();
         icoMine = new ImageIcon("./data/sprites/buildings/miner.png").getImage();
+        icoLivraison = new ImageIcon("./data/sprites/buildings/hub.png").getImage();
 
     }
-
-
 
     private void placerLesComposantsGraphiques() {
         setTitle("ShapeCraft");
@@ -73,8 +74,8 @@ public class VueControleur extends JFrame implements Observer {
         setSize(sizeX * pxCase, sizeX * pxCase);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // permet de terminer l'application à la fermeture de la fenêtre
 
-        grilleIP = new JPanel(new GridLayout(sizeY, sizeX)); // grilleJLabels va contenir les cases graphiques et les positionner sous la forme d'une grille
-
+        grilleIP = new JPanel(new GridLayout(sizeY, sizeX)); // grilleJLabels va contenir les cases graphiques et les
+                                                             // positionner sous la forme d'une grille
 
         tabIP = new ImagePanel[sizeX][sizeY];
 
@@ -82,7 +83,8 @@ public class VueControleur extends JFrame implements Observer {
             for (int x = 0; x < sizeX; x++) {
                 ImagePanel iP = new ImagePanel();
 
-                tabIP[x][y] = iP; // on conserve les cases graphiques dans tabJLabel pour avoir un accès pratique à celles-ci (voir mettreAJourAffichage() )
+                tabIP[x][y] = iP; // on conserve les cases graphiques dans tabJLabel pour avoir un accès pratique
+                                  // à celles-ci (voir mettreAJourAffichage() )
 
                 final int xx = x; // permet de compiler la classe anonyme ci-dessous
                 final int yy = y;
@@ -115,28 +117,31 @@ public class VueControleur extends JFrame implements Observer {
                     }
                 });
 
-
                 grilleIP.add(iP);
             }
         }
         add(grilleIP);
     }
 
-    
     /**
-     * Il y a une grille du côté du modèle ( jeu.getGrille() ) et une grille du côté de la vue (tabIP)
+     * Il y a une grille du côté du modèle ( jeu.getGrille() ) et une grille du côté
+     * de la vue (tabIP)
      */
     private void mettreAJourAffichage() {
-
 
         for (int x = 0; x < sizeX; x++) {
             for (int y = 0; y < sizeY; y++) {
 
                 tabIP[x][y].setBackground((Image) null);
-
                 tabIP[x][y].setFront(null);
+                tabIP[x][y].setGisement(false); // reset
 
                 Case c = plateau.getCases()[x][y];
+
+                // Affichage du gisement si la case en a un
+                if (c.getGisement() != null) {
+                    tabIP[x][y].setGisement(true);
+                }
 
                 Machine m = c.getMachine();
 
@@ -148,6 +153,8 @@ public class VueControleur extends JFrame implements Observer {
                         tabIP[x][y].setBackground(icoPoubelle);
                     } else if (m instanceof Mine) {
                         tabIP[x][y].setBackground(icoMine);
+                    } else if (m instanceof ZoneLivraison) {
+                        tabIP[x][y].setBackground(icoLivraison);
                     }
 
                     Item current = m.getCurrent();
@@ -161,14 +168,9 @@ public class VueControleur extends JFrame implements Observer {
 
                 }
 
-
-
-
-
             }
         }
         grilleIP.repaint();
-
 
     }
 
@@ -176,11 +178,11 @@ public class VueControleur extends JFrame implements Observer {
     public void update(Observable o, Object arg) {
 
         SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        mettreAJourAffichage();
-                    }
-                }); 
+            @Override
+            public void run() {
+                mettreAJourAffichage();
+            }
+        });
 
     }
 }
