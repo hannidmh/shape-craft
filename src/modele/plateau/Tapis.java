@@ -1,11 +1,18 @@
 package modele.plateau;
 
-import modele.item.ItemShape;
+public class Tapis extends Machine {
+    private Direction incomingDirection;
 
-public class Tapis extends Machine{
+    @Override
+    public void work() {
 
+    }
 
+    public Direction getIncomingDirection() {
+        return incomingDirection;
+    }
 
-
-
+    public void setIncomingDirection(Direction incomingDirection) {
+        this.incomingDirection = incomingDirection;
+    }
 }

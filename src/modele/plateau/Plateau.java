@@ -43,12 +43,11 @@ public class Plateau extends Observable implements Runnable {
             }
 
         }
-        // Étape A : On récupère une case précise
-        Case maCase = grilleCases[5][5];
-        // Étape B : On fabrique le gisement désiré ("O" représente un cercle)
-        ItemShape monGisement = new ItemShape("O-O-O-O-");
-        // Étape C : On installe le gisement dans la case
-        maCase.setGisement(monGisement);
+        grilleCases[5][5].setGisement(new ItemShape("O-O-O-O-"));
+        grilleCases[2][10].setGisement(new ItemShape("CrCgCbCy"));
+        grilleCases[10][3].setGisement(new ItemShape("OrOgObOy"));
+        grilleCases[12][11].setGisement(new ItemShape("SrSgSbSy"));
+        grilleCases[7][13].setGisement(new ItemShape("CrCgCbCyOrOgObOy"));
 
     }
 
@@ -79,8 +78,16 @@ public class Plateau extends Observable implements Runnable {
         for (int x = 0; x < SIZE_X; x++) {
             for (int y = 0; y < SIZE_Y; y++) {
                 Case c = grilleCases[x][y];
-                if (c.getMachine() != null) {
+                if (c.getMachine() != null && c.getMachine().getCase() == c) {
                     c.getMachine().run();
+                }
+            }
+        }
+        for (int x = 0; x < SIZE_X; x++) {
+            for (int y = 0; y < SIZE_Y; y++) {
+                Case c = grilleCases[x][y];
+                if (c.getMachine() != null && c.getMachine().getCase() == c) {
+                    c.getMachine().endTick();
                 }
             }
         }

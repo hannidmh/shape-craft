@@ -1,22 +1,34 @@
 package modele.plateau;
 
+import modele.item.Item;
+import modele.item.ItemColor;
 import modele.item.ItemShape;
-
-import java.util.Random;
 
 public class Mine extends Machine {
 
-
     @Override
-    public void work() { // TODO : modifier, suivant le gisement
-        if (new Random().nextInt(4) == 0) {
-            current.add(new ItemShape("CrCb--Cb"));
+    public void work() {
+        if (!current.isEmpty() || c == null || c.getGisement() == null) {
+            return;
         }
-
+        Item producedItem = duplicateItem(c.getGisement());
+        if (producedItem != null) {
+            current.add(producedItem);
+        }
     }
 
     @Override
     public void send() {
         super.send();
+    }
+
+    private Item duplicateItem(Item source) {
+        if (source instanceof ItemShape shape) {
+            return shape.copy();
+        }
+        if (source instanceof ItemColor itemColor) {
+            return itemColor.copy();
+        }
+        return null;
     }
 }
