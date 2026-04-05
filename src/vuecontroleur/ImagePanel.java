@@ -1,31 +1,98 @@
 package vuecontroleur;
 
+import modele.item.ItemColor;
 import modele.item.ItemShape;
-import modele.item.SubShape;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.geom.Path2D;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ImagePanel extends JPanel {
     private Image imgBackground;
     private Image imgFront;
     private ItemShape shape;
-    private boolean hasGisement = false; // true si la case a un gisement
+    private ItemShape gisementShape;
+    private ItemColor colorItem;
+    private ItemColor gisementColor;
+    private ItemShape overlayShape;
+    private String overlayText;
+    private boolean selected;
+
+    private int backgroundOffsetX;
+    private int backgroundOffsetY;
+    private int backgroundSpanX = 1;
+    private int backgroundSpanY = 1;
+
+    private int overlayShapeOffsetX;
+    private int overlayShapeOffsetY;
+    private int overlayShapeSpanX = 1;
+    private int overlayShapeSpanY = 1;
+
+    private int overlayTextOffsetX;
+    private int overlayTextOffsetY;
+    private int overlayTextSpanX = 1;
+    private int overlayTextSpanY = 1;
 
     public void setShape(ItemShape _shape) {
         shape = _shape;
     }
 
-    public void setGisement(boolean _hasGisement) {
-        hasGisement = _hasGisement;
+    public void setGisementShape(ItemShape gisementShape) {
+        this.gisementShape = gisementShape;
+    }
+
+    public void setColorItem(ItemColor colorItem) {
+        this.colorItem = colorItem;
+    }
+
+    public void setGisementColor(ItemColor gisementColor) {
+        this.gisementColor = gisementColor;
+    }
+
+    public void setOverlayText(String text) {
+        setOverlayText(text, 0, 0, 1, 1);
+    }
+
+    public void setOverlayText(String text, int offsetX, int offsetY, int spanX, int spanY) {
+        overlayText = text;
+        overlayTextOffsetX = offsetX;
+        overlayTextOffsetY = offsetY;
+        overlayTextSpanX = Math.max(1, spanX);
+        overlayTextSpanY = Math.max(1, spanY);
+    }
+
+    public void setOverlayShape(ItemShape overlayShape) {
+        setOverlayShape(overlayShape, 0, 0, 1, 1);
+    }
+
+    public void setOverlayShape(ItemShape overlayShape, int offsetX, int offsetY, int spanX, int spanY) {
+        this.overlayShape = overlayShape;
+        overlayShapeOffsetX = offsetX;
+        overlayShapeOffsetY = offsetY;
+        overlayShapeSpanX = Math.max(1, spanX);
+        overlayShapeSpanY = Math.max(1, spanY);
     }
 
     public void setBackground(Image _imgBackground) {
+        setBackground(_imgBackground, 0, 0, 1, 1);
+    }
+
+    public void setBackground(Image _imgBackground, int offsetX, int offsetY, int spanX, int spanY) {
         imgBackground = _imgBackground;
+        backgroundOffsetX = offsetX;
+        backgroundOffsetY = offsetY;
+        backgroundSpanX = Math.max(1, spanX);
+        backgroundSpanY = Math.max(1, spanY);
     }
 
     public void setFront(Image _imgFront) {
         imgFront = _imgFront;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
     }
 
     @Override
@@ -46,73 +113,59 @@ public class ImagePanel extends JPanel {
         final int widthFront = subPartWidth * 2;
         final int heigthFront = subPartHeigth * 2;
 
-        // cadre
-        g.drawRoundRect(bordure, bordure, widthBack, heigthBack, bordure, bordure);
+        Graphics2D borderGraphics = (Graphics2D) g.create();
+        borderGraphics.setColor(selected ? new Color(255, 140, 0) : Color.DARK_GRAY);
+        borderGraphics.setStroke(new BasicStroke(selected ? 3f : 1f));
+        borderGraphics.drawRoundRect(bordure, bordure, widthBack, heigthBack, bordure, bordure);
+        borderGraphics.dispose();
 
         if (imgBackground != null) {
-            g.drawImage(imgBackground, xBack, yBack, widthBack, heigthBack, this);
+            drawSpanningImage(g, imgBackground, xBack, yBack, widthBack, heigthBack,
+                    backgroundOffsetX, backgroundOffsetY, backgroundSpanX, backgroundSpanY);
         }
 
         if (imgFront != null) {
             g.drawImage(imgFront, xFront, yFront, widthFront, heigthFront, this);
         }
 
-        // Dessin du gisement : cercle gris en fond de case
-        if (hasGisement) {
-            g.setColor(new Color(180, 180, 180, 160));
-            g.fillOval(xBack + widthBack / 4, yBack + heigthBack / 4, widthBack / 2, heigthBack / 2);
+        if (gisementShape != null) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.45f));
+            drawShape(g2d, gisementShape, xBack + widthBack / 5, yBack + heigthBack / 5,
+                    widthBack * 3 / 5, heigthBack * 3 / 5);
+            g2d.dispose();
+        }
+        if (gisementColor != null) {
+            Graphics2D g2d = (Graphics2D) g.create();
+            g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+            drawColorItem(g2d, gisementColor, xBack + widthBack / 5, yBack + heigthBack / 5,
+                    widthBack * 3 / 5, heigthBack * 3 / 5);
+            g2d.dispose();
         }
 
         if (shape != null) {
-            ItemShape.Layer[] layers = { ItemShape.Layer.one, ItemShape.Layer.two, ItemShape.Layer.three };
-            for (int layerIndex = 0; layerIndex < layers.length; layerIndex++) {
-                SubShape[] tabS = shape.getSubShapes(layers[layerIndex]);
-                modele.item.Color[] tabC = shape.getColors(layers[layerIndex]);
-
-                int layerInset = layerIndex * Math.max(2, widthFront / 10);
-                int layerX = xFront + layerInset;
-                int layerY = yFront + layerInset;
-                int layerWidth = widthFront - layerInset * 2;
-                int layerHeight = heigthFront - layerInset * 2;
-
-                if (layerWidth <= 0 || layerHeight <= 0) {
-                    continue;
-                }
-
-                for (int i = 0; i < 4; i++) {
-                    SubShape ss = tabS[i];
-
-                    if (ss != SubShape.None) {
-                        g.setColor(toAwtColor(tabC[i]));
-
-                        switch (ss) {
-                            case Carre:
-                                g.fillRect(layerX + (layerWidth / 2) * ((i >> 1) ^ 1),
-                                        layerY + (layerHeight / 2) * ((i & 1) ^ ((i >> 1) & 1)), layerWidth / 2,
-                                        layerHeight / 2);
-                                break;
-                            case Circle:
-                                g.fillOval(layerX + (layerWidth / 2) * ((i >> 1) ^ 1),
-                                        layerY + (layerHeight / 2) * ((i & 1) ^ ((i >> 1) & 1)), layerWidth / 2,
-                                        layerHeight / 2);
-                                break;
-                            case Fan:
-                                g.fillArc(layerX + (layerWidth / 2) * ((i >> 1) ^ 1),
-                                        layerY + (layerHeight / 2) * ((i & 1) ^ ((i >> 1) & 1)), layerWidth / 2,
-                                        layerHeight / 2, getFanStartAngle(i), 90);
-                                break;
-                            case Star:
-                                drawStar(g, layerX + (layerWidth / 2) * ((i >> 1) ^ 1),
-                                        layerY + (layerHeight / 2) * ((i & 1) ^ ((i >> 1) & 1)), layerWidth / 2,
-                                        layerHeight / 2);
-                                break;
-                            case None:
-                                break;
-                        }
-                    }
-                }
-            }
+            drawShape(g, shape, xFront, yFront, widthFront, heigthFront);
         }
+        if (colorItem != null) {
+            drawColorItem(g, colorItem, xFront, yFront, widthFront, heigthFront);
+        }
+
+        if (overlayShape != null) {
+            drawSpanningShape(g, overlayShape, xBack, yBack, widthBack, heigthBack,
+                    overlayShapeOffsetX, overlayShapeOffsetY, overlayShapeSpanX, overlayShapeSpanY);
+        }
+
+        if (overlayText != null && !overlayText.isEmpty()) {
+            drawSpanningOverlayText(g, overlayText, xBack, yBack, widthBack, heigthBack,
+                    overlayTextOffsetX, overlayTextOffsetY, overlayTextSpanX, overlayTextSpanY);
+        }
+    }
+
+    private void drawSpanningImage(Graphics g, Image image, int x, int y, int width, int height,
+            int offsetX, int offsetY, int spanX, int spanY) {
+        int drawX = x - offsetX * width;
+        int drawY = y - offsetY * height;
+        g.drawImage(image, drawX, drawY, width * spanX, height * spanY, this);
     }
 
     private Color toAwtColor(modele.item.Color color) {
@@ -128,16 +181,7 @@ public class ImagePanel extends JPanel {
             case Yellow -> Color.YELLOW;
             case Purple -> new Color(128, 0, 128);
             case Cyan -> Color.CYAN;
-        };
-    }
-
-    private int getFanStartAngle(int index) {
-        return switch (index) {
-            case 0 -> 180;
-            case 1 -> 90;
-            case 2 -> 0;
-            case 3 -> 270;
-            default -> 0;
+            case Gray -> Color.GRAY;
         };
     }
 
@@ -158,4 +202,136 @@ public class ImagePanel extends JPanel {
         g.fillPolygon(xs, ys, 10);
     }
 
+    private void drawFan(Graphics g, int x, int y, int width, int height) {
+        Graphics2D g2d = (Graphics2D) g.create();
+        int centerX = x + width / 2;
+        int centerY = y + height / 2;
+        int outerRadius = Math.max(6, Math.min(width, height) / 2);
+        int innerRadius = Math.max(3, outerRadius / 3);
+        double bladeSpread = Math.toRadians(24);
+
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        for (int i = 0; i < 3; i++) {
+            double angle = -Math.PI / 2 + i * (2 * Math.PI / 3);
+            Path2D.Double blade = new Path2D.Double();
+            blade.moveTo(centerX + Math.cos(angle) * outerRadius, centerY + Math.sin(angle) * outerRadius);
+            blade.lineTo(centerX + Math.cos(angle + bladeSpread) * innerRadius,
+                    centerY + Math.sin(angle + bladeSpread) * innerRadius);
+            blade.lineTo(centerX + Math.cos(angle - bladeSpread) * innerRadius,
+                    centerY + Math.sin(angle - bladeSpread) * innerRadius);
+            blade.closePath();
+            g2d.fill(blade);
+        }
+
+        int hubRadius = Math.max(4, outerRadius / 3);
+        g2d.fillOval(centerX - hubRadius, centerY - hubRadius, hubRadius * 2, hubRadius * 2);
+        g2d.dispose();
+    }
+
+    private void drawShape(Graphics g, ItemShape shape, int x, int y, int width, int height) {
+        if (shape == null || width <= 0 || height <= 0) {
+            return;
+        }
+
+        List<ItemShape> layers = new ArrayList<ItemShape>();
+        collectShapeLayers(shape, layers);
+
+        int layerOffset = layers.size() <= 1 ? 0 : Math.max(3, Math.min(width, height) / 8);
+        int maxShift = layerOffset * Math.max(0, layers.size() - 1);
+        int layerWidth = Math.max(4, width);
+        int layerHeight = Math.max(4, height - maxShift);
+        int layerX = x;
+
+        for (int i = 0; i < layers.size(); i++) {
+            int layerY = y + (layers.size() - 1 - i) * layerOffset;
+            drawSingleShape(g, layers.get(i), layerX, layerY, layerWidth, layerHeight);
+        }
+    }
+
+    private void drawSingleShape(Graphics g, ItemShape shape, int x, int y, int width, int height) {
+        g.setColor(toAwtColor(shape.getColor()));
+
+        Graphics2D g2d = (Graphics2D) g.create();
+        if (shape.getPart() == ItemShape.Part.LEFT) {
+            g2d.setClip(x, y, width / 2, height);
+        } else if (shape.getPart() == ItemShape.Part.RIGHT) {
+            g2d.setClip(x + width / 2, y, width / 2, height);
+        }
+
+        switch (shape.getType()) {
+            case CIRCLE -> g2d.fillOval(x, y, width, height);
+            case SQUARE -> g2d.fillRect(x, y, width, height);
+            case STAR -> drawStar(g2d, x, y, width, height);
+            case FAN -> drawFan(g2d, x, y, width, height);
+        }
+
+        g2d.setColor(new Color(55, 55, 55, 170));
+        switch (shape.getType()) {
+            case CIRCLE -> g2d.drawOval(x, y, width, height);
+            case SQUARE -> g2d.drawRect(x, y, width, height);
+            case STAR, FAN -> {
+            }
+        }
+        g2d.dispose();
+    }
+
+    private void collectShapeLayers(ItemShape shape, List<ItemShape> layers) {
+        if (shape == null) {
+            return;
+        }
+        layers.add(shape);
+        ItemShape stackedTop = shape.getStackedTop();
+        if (stackedTop != null) {
+            collectShapeLayers(stackedTop, layers);
+        }
+    }
+
+    private void drawColorItem(Graphics g, ItemColor colorItem, int x, int y, int width, int height) {
+        if (colorItem == null) {
+            return;
+        }
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setColor(toAwtColor(colorItem.getColor()));
+        g2d.fillRoundRect(x + width / 6, y + height / 6, width * 2 / 3, height * 2 / 3, 12, 12);
+        g2d.setColor(new Color(40, 40, 40, 180));
+        g2d.drawRoundRect(x + width / 6, y + height / 6, width * 2 / 3, height * 2 / 3, 12, 12);
+        g2d.dispose();
+    }
+
+    private void drawSpanningShape(Graphics g, ItemShape shape, int x, int y, int width, int height,
+            int offsetX, int offsetY, int spanX, int spanY) {
+        int fullX = x - offsetX * width;
+        int fullY = y - offsetY * height;
+        int fullWidth = width * spanX;
+        int fullHeight = height * spanY;
+
+        int insetX = Math.max(8, fullWidth / 4);
+        int insetY = Math.max(8, fullHeight / 4);
+        drawShape(g, shape, fullX + insetX, fullY + insetY, fullWidth - insetX * 2, fullHeight - insetY * 2);
+    }
+
+    private void drawSpanningOverlayText(Graphics g, String text, int x, int y, int width, int height,
+            int offsetX, int offsetY, int spanX, int spanY) {
+        Graphics2D g2d = (Graphics2D) g.create();
+        int fullX = x - offsetX * width;
+        int fullY = y - offsetY * height;
+        int fullWidth = width * spanX;
+        int fullHeight = height * spanY;
+
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(11f, fullWidth / 18f)));
+        FontMetrics metrics = g2d.getFontMetrics();
+        int textWidth = metrics.stringWidth(text);
+        int boxWidth = textWidth + 20;
+        int boxHeight = metrics.getHeight() + 10;
+        int boxX = fullX + (fullWidth - boxWidth) / 2;
+        int boxY = fullY + fullHeight - boxHeight - Math.max(8, fullHeight / 12);
+
+        g2d.setColor(new Color(255, 255, 255, 220));
+        g2d.fillRoundRect(boxX, boxY, boxWidth, boxHeight, 12, 12);
+        g2d.setColor(Color.DARK_GRAY);
+        g2d.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 12, 12);
+        g2d.drawString(text, boxX + 10, boxY + metrics.getAscent() + 5);
+        g2d.dispose();
+    }
 }

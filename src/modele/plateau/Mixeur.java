@@ -2,12 +2,11 @@ package modele.plateau;
 
 import modele.item.Item;
 import modele.item.ItemColor;
-import modele.item.ItemShape;
 
-public class Peintre extends Machine {
-    private ItemShape pendingShape;
-    private ItemColor pendingColor;
-    private ItemShape paintedOutput;
+public class Mixeur extends Machine {
+    private ItemColor pendingLeft;
+    private ItemColor pendingRight;
+    private ItemColor mixedOutput;
 
     @Override
     public Point[] getFootprint(Direction direction) {
@@ -20,55 +19,55 @@ public class Peintre extends Machine {
 
     @Override
     public void work() {
-        if (paintedOutput != null || pendingShape == null || pendingColor == null) {
+        if (mixedOutput != null || pendingLeft == null || pendingRight == null) {
             return;
         }
 
-        pendingShape.Color(pendingColor.getColor());
-        paintedOutput = pendingShape;
-        pendingShape = null;
-        pendingColor = null;
+        ItemColor result = pendingLeft.copy();
+        result.transform(pendingRight.getColor());
+        mixedOutput = result;
+        pendingLeft = null;
+        pendingRight = null;
     }
 
     @Override
     public void send() {
-        Case secondaryCase = getSecondaryCase();
-        if (secondaryCase == null || paintedOutput == null) {
+        if (c == null || mixedOutput == null) {
             return;
         }
 
-        Case outputCase = c.plateau.getCase(secondaryCase, getOutputDirection());
+        Case outputCase = c.plateau.getCase(c, getOutputDirection());
         if (outputCase == null || outputCase.getMachine() == null) {
             return;
         }
 
-        if (outputCase.getMachine().receive(paintedOutput, outputCase, secondaryCase)) {
-            paintedOutput = null;
+        if (outputCase.getMachine().receive(mixedOutput, outputCase, c)) {
+            mixedOutput = null;
         }
     }
 
     @Override
     public boolean receive(Item item, Case targetCase, Case sourceCase) {
-        if (c == null || targetCase == null || sourceCase == null || paintedOutput != null) {
+        if (c == null || targetCase == null || sourceCase == null || mixedOutput != null) {
             return false;
         }
 
         Case secondaryCase = getSecondaryCase();
 
         if (targetCase == c
-                && item instanceof ItemShape shape
-                && pendingShape == null
-                && c.plateau.getCase(sourceCase, getShapeInputDirection()) == c) {
-            pendingShape = shape;
+                && item instanceof ItemColor color
+                && pendingLeft == null
+                && c.plateau.getCase(sourceCase, getLeftInputDirection()) == c) {
+            pendingLeft = color;
             return true;
         }
 
         if (secondaryCase != null
                 && targetCase == secondaryCase
                 && item instanceof ItemColor color
-                && pendingColor == null
-                && c.plateau.getCase(sourceCase, getColorInputDirection()) == secondaryCase) {
-            pendingColor = color;
+                && pendingRight == null
+                && c.plateau.getCase(sourceCase, getRightInputDirection()) == secondaryCase) {
+            pendingRight = color;
             return true;
         }
 
@@ -80,14 +79,14 @@ public class Peintre extends Machine {
         if (currentCase == null) {
             return null;
         }
+        if (mixedOutput != null) {
+            return currentCase == c ? mixedOutput : null;
+        }
         if (currentCase == c) {
-            return pendingShape;
+            return pendingLeft;
         }
         if (currentCase == getSecondaryCase()) {
-            if (paintedOutput != null) {
-                return paintedOutput;
-            }
-            return pendingColor;
+            return pendingRight;
         }
         return null;
     }
@@ -95,9 +94,9 @@ public class Peintre extends Machine {
     @Override
     public void clearItems() {
         super.clearItems();
-        pendingShape = null;
-        pendingColor = null;
-        paintedOutput = null;
+        pendingLeft = null;
+        pendingRight = null;
+        mixedOutput = null;
     }
 
     private Case getSecondaryCase() {
@@ -111,16 +110,16 @@ public class Peintre extends Machine {
         return d.nextClockwise();
     }
 
-    private Direction getShapeInputDirection() {
-        return rotateRelative(Direction.East);
+    private Direction getLeftInputDirection() {
+        return rotateRelative(Direction.North);
     }
 
-    private Direction getColorInputDirection() {
-        return rotateRelative(Direction.South);
+    private Direction getRightInputDirection() {
+        return rotateRelative(Direction.North);
     }
 
     private Direction getOutputDirection() {
-        return rotateRelative(Direction.East);
+        return rotateRelative(Direction.North);
     }
 
     private Direction rotateRelative(Direction absoluteDirectionWhenFacingNorth) {

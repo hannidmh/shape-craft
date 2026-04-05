@@ -10,24 +10,24 @@ import modele.plateau.ZoneLivraison;
 import modele.plateau.Rotateur;
 import modele.plateau.Coupeur;
 import modele.plateau.Empileur;
+import modele.plateau.Mixeur;
 import modele.plateau.Peintre;
 
 public class Jeu extends Thread {
     public enum BuildMode {
-        TAPIS, MINE, LIVRAISON, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, PEINTRE
+        TAPIS, MINE, LIVRAISON, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, MIXEUR, PEINTRE
     }
 
     private Plateau plateau;
     private int lastPlacedX = -1;
     private int lastPlacedY = -1;
     private BuildMode buildMode = BuildMode.TAPIS;
+    private Machine selectedMachine;
 
     public Jeu() {
         plateau = new Plateau();
 
-        plateau.setMachine(5, 10, new Mine());
-        plateau.setMachine(8, 8, new Poubelle());
-        plateau.setMachine(5, 5, new ZoneLivraison());
+        placeHub(6, 6, createDefaultHub());
 
         start();
 
@@ -48,14 +48,34 @@ public class Jeu extends Thread {
     public void press(int x, int y) {
         lastPlacedX = x;
         lastPlacedY = y;
+        Machine existingMachine = plateau.getCases()[x][y].getMachine();
+        if (existingMachine != null) {
+            selectMachine(existingMachine);
+            if (!(existingMachine instanceof Tapis) || buildMode != BuildMode.TAPIS) {
+                return;
+            }
+            return;
+        }
+
         if (buildMode == BuildMode.TAPIS) {
             Tapis tapis = placeOrUpdateTapis(x, y, Direction.North);
             if (tapis != null) {
                 tapis.setIncomingDirection(null);
+                selectMachine(tapis);
+            } else {
+                clearSelection();
             }
             return;
         }
         placeMachine(x, y);
+    }
+
+    public void erase(int x, int y) {
+        Machine targetMachine = plateau.getCases()[x][y].getMachine();
+        boolean removed = plateau.removeMachine(x, y);
+        if (removed && targetMachine != null && targetMachine == getSelectedMachine()) {
+            clearSelection();
+        }
     }
 
     public void slide(int x, int y) {
@@ -90,6 +110,7 @@ public class Jeu extends Thread {
         }
         currentTapis.setIncomingDirection(opposite(direction));
         currentTapis.setDirection(direction);
+        selectMachine(currentTapis);
 
         lastPlacedX = x;
         lastPlacedY = y;
@@ -113,6 +134,18 @@ public class Jeu extends Thread {
 
     }
 
+    public boolean rotateSelection() {
+        Machine machine = getSelectedMachine();
+        if (machine == null) {
+            return false;
+        }
+        return plateau.rotateMachine(machine);
+    }
+
+    public boolean isSelectedMachine(Machine machine) {
+        return machine != null && machine == getSelectedMachine();
+    }
+
     private Tapis placeOrUpdateTapis(int x, int y, Direction direction) {
         Machine machine = plateau.getCases()[x][y].getMachine();
 
@@ -134,7 +167,9 @@ public class Jeu extends Thread {
     }
 
     private void placeMachine(int x, int y) {
-        if (plateau.getCases()[x][y].getMachine() != null) {
+        Machine existingMachine = plateau.getCases()[x][y].getMachine();
+        if (existingMachine != null) {
+            selectMachine(existingMachine);
             return;
         }
 
@@ -142,32 +177,139 @@ public class Jeu extends Thread {
             placeCoupeur(x, y);
             return;
         }
+        if (buildMode == BuildMode.PEINTRE) {
+            placePeintre(x, y);
+            return;
+        }
+        if (buildMode == BuildMode.EMPILEUR) {
+            placeEmpileur(x, y);
+            return;
+        }
+        if (buildMode == BuildMode.MIXEUR) {
+            placeMixeur(x, y);
+            return;
+        }
+        if (buildMode == BuildMode.LIVRAISON) {
+            clearSelection();
+            return;
+        }
 
         Machine machine = switch (buildMode) {
             case TAPIS -> new Tapis();
-            case MINE -> new Mine();
-            case LIVRAISON -> new ZoneLivraison();
+            case MINE -> plateau.getCases()[x][y].getGisement() == null ? null : new Mine();
+            case LIVRAISON -> new ZoneLivraison(); // non utilisé (géré ci-dessus)
             case POUBELLE -> new Poubelle();
             case ROTATEUR -> new Rotateur();
             case COUPEUR -> throw new IllegalStateException("Coupeur géré à part");
-            case EMPILEUR -> new Empileur();
-            case PEINTRE -> new Peintre();
+            case EMPILEUR -> throw new IllegalStateException("Empileur géré à part");
+            case MIXEUR -> throw new IllegalStateException("Mixeur géré à part");
+            case PEINTRE -> throw new IllegalStateException("Peintre géré à part");
         };
-        plateau.setMachine(x, y, machine);
+        if (machine != null) {
+            plateau.setMachine(x, y, machine);
+            selectMachine(machine);
+        } else {
+            clearSelection();
+        }
     }
 
     private void placeCoupeur(int x, int y) {
         int extensionX = x + 1;
         if (extensionX >= Plateau.SIZE_X) {
+            clearSelection();
             return;
         }
         if (plateau.getCases()[extensionX][y].getMachine() != null) {
+            clearSelection();
             return;
         }
 
         Coupeur coupeur = new Coupeur();
         plateau.setMachine(x, y, coupeur);
         plateau.setMachine(extensionX, y, coupeur);
+        selectMachine(coupeur);
+    }
+
+    private void placePeintre(int x, int y) {
+        int extensionX = x + 1;
+        if (extensionX >= Plateau.SIZE_X) {
+            clearSelection();
+            return;
+        }
+        if (plateau.getCases()[extensionX][y].getMachine() != null) {
+            clearSelection();
+            return;
+        }
+
+        Peintre peintre = new Peintre();
+        plateau.setMachine(x, y, peintre);
+        plateau.setMachine(extensionX, y, peintre);
+        selectMachine(peintre);
+    }
+
+    private void placeEmpileur(int x, int y) {
+        int extensionX = x + 1;
+        if (extensionX >= Plateau.SIZE_X) {
+            clearSelection();
+            return;
+        }
+        if (plateau.getCases()[extensionX][y].getMachine() != null) {
+            clearSelection();
+            return;
+        }
+
+        Empileur empileur = new Empileur();
+        plateau.setMachine(x, y, empileur);
+        plateau.setMachine(extensionX, y, empileur);
+        selectMachine(empileur);
+    }
+
+    private void placeMixeur(int x, int y) {
+        int extensionX = x + 1;
+        if (extensionX >= Plateau.SIZE_X) {
+            clearSelection();
+            return;
+        }
+        if (plateau.getCases()[extensionX][y].getMachine() != null) {
+            clearSelection();
+            return;
+        }
+
+        Mixeur mixeur = new Mixeur();
+        plateau.setMachine(x, y, mixeur);
+        plateau.setMachine(extensionX, y, mixeur);
+        selectMachine(mixeur);
+    }
+
+    /**
+     * Place un hub 4x4 à partir de la coordonnée (x,y) (coin haut-gauche). Toutes
+     * les cases doivent être libres et dans la grille. La même instance est
+     * référencée sur les 16 cases ; seule la case principale (x,y) exécute run().
+     */
+    private void placeHub(int x, int y, ZoneLivraison hub) {
+        if (x + 3 >= Plateau.SIZE_X || y + 3 >= Plateau.SIZE_Y) {
+            return;
+        }
+        // vérification de disponibilité
+        for (int dx = 0; dx < 4; dx++) {
+            for (int dy = 0; dy < 4; dy++) {
+                if (plateau.getCases()[x + dx][y + dy].getMachine() != null) {
+                    return;
+                }
+            }
+        }
+        // placement
+        for (int dx = 0; dx < 4; dx++) {
+            for (int dy = 0; dy < 4; dy++) {
+                plateau.setMachine(x + dx, y + dy, hub);
+            }
+        }
+    }
+
+    private ZoneLivraison createDefaultHub() {
+        ZoneLivraison hub = new ZoneLivraison();
+        hub.configureHalfCircleGoal(10);
+        return hub;
     }
 
     private Direction directionFromDelta(int dx, int dy) {
@@ -193,6 +335,25 @@ public class Jeu extends Thread {
             case East -> Direction.West;
             case West -> Direction.East;
         };
+    }
+
+    private Machine getSelectedMachine() {
+        if (selectedMachine != null && !plateau.containsMachine(selectedMachine)) {
+            selectedMachine = null;
+        }
+        return selectedMachine;
+    }
+
+    private void selectMachine(Machine machine) {
+        if (machine instanceof ZoneLivraison) {
+            clearSelection();
+            return;
+        }
+        selectedMachine = machine;
+    }
+
+    private void clearSelection() {
+        selectedMachine = null;
     }
 
 }

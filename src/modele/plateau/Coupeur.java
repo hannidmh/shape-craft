@@ -3,85 +3,111 @@ package modele.plateau;
 import modele.item.Item;
 import modele.item.ItemShape;
 
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.Set;
-
 public class Coupeur extends Machine {
-    private final Set<Item> processedItems = Collections.newSetFromMap(new IdentityHashMap<>());
+    private ItemShape leftOutput;
+    private ItemShape rightOutput;
+
+    @Override
+    public Point[] getFootprint(Direction direction) {
+        Direction secondaryOffsetDirection = direction.nextClockwise();
+        return new Point[] {
+                new Point(0, 0),
+                new Point(secondaryOffsetDirection.dx, secondaryOffsetDirection.dy)
+        };
+    }
 
     @Override
     public void work() {
-        if (current.isEmpty()) {
+        if (hasPendingOutputs() || current.isEmpty()) {
             return;
         }
 
-        Item item = current.getFirst();
-        if (item instanceof ItemShape shape && !processedItems.contains(item)) {
-            ItemShape secondHalf = shape.Cut();
-            processedItems.add(item);
-            if (secondHalf != null) {
-                current.add(1, secondHalf);
-                processedItems.add(secondHalf);
-            }
+        Item input = current.getFirst();
+        if (!(input instanceof ItemShape shape)) {
+            return;
         }
+        if (shape.getPart() != ItemShape.Part.FULL) {
+            return;
+        }
+
+        current.removeFirst();
+
+        // La forme d'entree devient la moitie gauche, et on memorise les deux
+        // sorties separement pour eviter toute inversion liee a l'ordre de liste.
+        ItemShape producedRight = shape.Cut();
+        leftOutput = shape;
+        rightOutput = producedRight;
     }
 
     @Override
     public void send() {
-        if (current.isEmpty()) {
+        if (c == null) {
             return;
         }
 
-        Direction leftDirection = turnLeft(d);
-        Direction rightDirection = turnRight(d);
+        Case primaryOutput = c.plateau.getCase(c, d);
+        Case secondaryCase = getSecondaryCase();
+        Case secondaryOutput = secondaryCase == null ? null : c.plateau.getCase(secondaryCase, d);
 
-        Case frontCase = c.plateau.getCase(c, d);
-        if (frontCase == null) {
-            return;
-        }
-
-        Case frontLeftCase = c.plateau.getCase(frontCase, leftDirection);
-        Case frontRightCase = c.plateau.getCase(frontCase, rightDirection);
-
-        sendHalfTo(frontLeftCase, 0);
-        sendHalfTo(frontRightCase, 1);
+        leftOutput = sendTo(primaryOutput, c, leftOutput);
+        rightOutput = sendTo(secondaryOutput, secondaryCase, rightOutput);
     }
 
-    private void sendHalfTo(Case targetCase, int itemIndex) {
-        if (targetCase == null || current.size() <= itemIndex) {
-            return;
+    @Override
+    public Item getDisplayedItem(Case currentCase) {
+        if (currentCase == null) {
+            return null;
+        }
+        if (leftOutput != null || rightOutput != null) {
+            return isPrimaryCase(currentCase) ? leftOutput : rightOutput;
+        }
+        if (current.isEmpty()) {
+            return null;
+        }
+        return current.getFirst();
+    }
+
+    @Override
+    public boolean isPrimaryCase(Case currentCase) {
+        return c == currentCase;
+    }
+
+    @Override
+    public void clearItems() {
+        super.clearItems();
+        leftOutput = null;
+        rightOutput = null;
+    }
+
+    private boolean hasPendingOutputs() {
+        return leftOutput != null || rightOutput != null;
+    }
+
+    private ItemShape sendTo(Case targetCase, Case sourceCase, ItemShape output) {
+        if (output == null || targetCase == null || sourceCase == null) {
+            return output;
         }
 
         Machine targetMachine = targetCase.getMachine();
         if (targetMachine == null) {
-            return;
+            return output;
         }
 
-        Item item = current.get(itemIndex);
-        targetMachine.incoming.add(item);
-        current.remove(itemIndex);
+        return targetMachine.receive(output, targetCase, sourceCase) ? null : output;
     }
 
-    private Direction turnLeft(Direction direction) {
-        return switch (direction) {
-            case North -> Direction.West;
-            case South -> Direction.East;
-            case East -> Direction.North;
-            case West -> Direction.South;
-        };
+    private Case getSecondaryCase() {
+        if (c == null) {
+            return null;
+        }
+        return c.plateau.getCase(c, getSecondaryOffsetDirection());
     }
 
-    private Direction turnRight(Direction direction) {
-        return switch (direction) {
-            case North -> Direction.East;
-            case South -> Direction.West;
-            case East -> Direction.South;
-            case West -> Direction.North;
-        };
-    }
-
-    public boolean isPrimaryCase(Case currentCase) {
-        return c == currentCase;
+    /**
+     * En orientation nord/sud, le cutter occupe deux cases horizontales.
+     * En orientation est/ouest, il occupe deux cases verticales.
+     */
+    private Direction getSecondaryOffsetDirection() {
+        return d.nextClockwise();
     }
 }

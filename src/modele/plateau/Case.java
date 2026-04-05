@@ -19,6 +19,10 @@ public class Case {
         m.setCase(this);
     }
 
+    public void clearMachine() {
+        machine = null;
+    }
+
     public Machine getMachine() {
         return machine;
     }

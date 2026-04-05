@@ -1,5 +1,5 @@
 package modele.item;
 
 public enum Color {
-    Red, Green, Blue, Yellow, Purple, Cyan, White
-    }
+    Red, Green, Blue, Yellow, Purple, Cyan, White, Gray
+}

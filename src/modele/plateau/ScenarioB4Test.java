@@ -17,7 +17,7 @@ public final class ScenarioB4Test {
 
         ZoneLivraison zoneLivraison = new ZoneLivraison();
 
-        plateau.getCases()[1][1].setGisement(new ItemShape("Cr------"));
+        plateau.getCases()[1][1].setGisement(new ItemShape(ItemShape.ShapeType.SQUARE));
         plateau.setMachine(1, 1, mine);
         plateau.setMachine(2, 1, tapis);
         plateau.setMachine(3, 1, zoneLivraison);

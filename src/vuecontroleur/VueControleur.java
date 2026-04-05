@@ -3,6 +3,7 @@ package vuecontroleur;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.File;
@@ -45,15 +46,16 @@ public class VueControleur extends JFrame implements Observer {
     private Image icoMine;
     private Image icoLivraison;
     private Image icoRotateur;
-    private Image icoCoupeurLeft;
-    private Image icoCoupeurRight;
+    private Image icoCoupeur;
     private Image icoEmpileur;
+    private Image icoMixeur;
     private Image icoPeintre;
 
     private JComponent grilleIP;
     private JLabel modeLabel;
 
     private boolean mousePressed = false; // permet de mémoriser l'état de la souris
+    private int pressedMouseButton = MouseEvent.NOBUTTON;
 
     private ImagePanel[][] tabIP; // cases graphique (au moment du rafraichissement, chaque case va être associée
                                   // à une icône background et front, suivant ce qui est présent dans le modèle)
@@ -66,6 +68,7 @@ public class VueControleur extends JFrame implements Observer {
 
         chargerLesIcones();
         placerLesComposantsGraphiques();
+        installerActionsClavier();
 
         plateau.addObserver(this);
 
@@ -86,11 +89,9 @@ public class VueControleur extends JFrame implements Observer {
         icoMine = new ImageIcon("./data/sprites/buildings/miner.png").getImage();
         icoLivraison = new ImageIcon("./data/sprites/buildings/hub.png").getImage();
         icoRotateur = new ImageIcon("./data/sprites/buildings/rotater.png").getImage();
-        BufferedImage cutterQuad = loadImage("./data/sprites/buildings/cutter-quad.png");
-        icoCoupeurLeft = cutterQuad.getSubimage(0, 0, cutterQuad.getWidth() / 2, cutterQuad.getHeight());
-        icoCoupeurRight = cutterQuad.getSubimage(cutterQuad.getWidth() / 2, 0,
-                cutterQuad.getWidth() - cutterQuad.getWidth() / 2, cutterQuad.getHeight());
+        icoCoupeur = loadImage("./data/sprites/buildings/cutter.png");
         icoEmpileur = new ImageIcon("./data/sprites/buildings/stacker.png").getImage();
+        icoMixeur = new ImageIcon("./data/sprites/buildings/mixer.png").getImage();
         icoPeintre = new ImageIcon("./data/sprites/buildings/painter.png").getImage();
 
     }
@@ -119,29 +120,32 @@ public class VueControleur extends JFrame implements Observer {
                 // écouteur de clics
                 iP.addMouseListener(new MouseAdapter() {
                     @Override
-                    public void mouseClicked(MouseEvent e) {
-                        mousePressed = false;
-                        jeu.press(xx, yy);
-                        System.out.println(xx + "-" + yy);
-                    }
-
-                    @Override
                     public void mouseEntered(MouseEvent e) {
-                        if (mousePressed) {
+                        if (mousePressed && pressedMouseButton == MouseEvent.BUTTON1) {
                             jeu.slide(xx, yy);
+                            mettreAJourAffichage();
                         }
                     }
 
                     @Override
                     public void mousePressed(MouseEvent e) {
                         mousePressed = true;
-                        jeu.press(xx, yy);
+                        pressedMouseButton = e.getButton();
+                        if (SwingUtilities.isRightMouseButton(e)) {
+                            jeu.erase(xx, yy);
+                            mettreAJourAffichage();
+                            return;
+                        }
+                        if (SwingUtilities.isLeftMouseButton(e)) {
+                            jeu.press(xx, yy);
+                            mettreAJourAffichage();
+                        }
                     }
 
                     @Override
                     public void mouseReleased(MouseEvent e) {
                         mousePressed = false;
-
+                        pressedMouseButton = MouseEvent.NOBUTTON;
                     }
                 });
 
@@ -163,44 +167,65 @@ public class VueControleur extends JFrame implements Observer {
 
                 tabIP[x][y].setBackground((Image) null);
                 tabIP[x][y].setFront(null);
-                tabIP[x][y].setGisement(false); // reset
+                tabIP[x][y].setShape(null);
+                tabIP[x][y].setColorItem(null);
+                tabIP[x][y].setGisementShape(null);
+                tabIP[x][y].setGisementColor(null);
+                tabIP[x][y].setOverlayShape(null);
+                tabIP[x][y].setOverlayText(null);
+                tabIP[x][y].setSelected(false);
 
                 Case c = plateau.getCases()[x][y];
 
                 // Affichage du gisement si la case en a un
-                if (c.getGisement() != null) {
-                    tabIP[x][y].setGisement(true);
+                if (c.getGisement() instanceof ItemShape gisementShape) {
+                    tabIP[x][y].setGisementShape(gisementShape);
+                } else if (c.getGisement() instanceof ItemColor gisementColor) {
+                    tabIP[x][y].setGisementColor(gisementColor);
                 }
 
                 Machine m = c.getMachine();
 
                 if (m != null) {
+                    boolean shouldDisplayCurrentItem = true;
+                    tabIP[x][y].setSelected(jeu.isSelectedMachine(m));
 
                     if (m instanceof Tapis) {
                         tabIP[x][y].setBackground(getTapisImage((Tapis) m));
                     } else if (m instanceof Poubelle) {
-                        tabIP[x][y].setBackground(icoPoubelle);
+                        tabIP[x][y].setBackground(getMachineImage(icoPoubelle, m.getDirection()));
                     } else if (m instanceof Mine) {
-                        tabIP[x][y].setBackground(icoMine);
-                    } else if (m instanceof ZoneLivraison) {
-                        tabIP[x][y].setBackground(icoLivraison);
+                        tabIP[x][y].setBackground(getMachineImage(icoMine, m.getDirection()));
+                    } else if (m instanceof ZoneLivraison zoneLivraison) {
+                        modele.plateau.Point origin = plateau.getPosition(zoneLivraison.getCase());
+                        int offsetX = x - origin.x;
+                        int offsetY = y - origin.y;
+                        tabIP[x][y].setBackground(icoLivraison, offsetX, offsetY,
+                                ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
+                        tabIP[x][y].setOverlayShape(zoneLivraison.getTargetShape(), offsetX, offsetY,
+                                ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
+                        tabIP[x][y].setOverlayText(zoneLivraison.getProgressLabel(), offsetX, offsetY,
+                                ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
+                        shouldDisplayCurrentItem = false;
                     } else if (m instanceof Rotateur) {
-                        tabIP[x][y].setBackground(icoRotateur);
-                    } else if (m instanceof Coupeur coupeur) {
-                        tabIP[x][y].setBackground(coupeur.isPrimaryCase(c) ? icoCoupeurLeft : icoCoupeurRight);
+                        tabIP[x][y].setBackground(getMachineImage(icoRotateur, m.getDirection()));
+                    } else if (m instanceof Coupeur) {
+                        setSpanningMachineBackground(tabIP[x][y], m, icoCoupeur, x, y);
                     } else if (m instanceof Empileur) {
-                        tabIP[x][y].setBackground(icoEmpileur);
+                        setSpanningMachineBackground(tabIP[x][y], m, icoEmpileur, x, y);
+                    } else if (m instanceof Mixeur) {
+                        setSpanningMachineBackground(tabIP[x][y], m, icoMixeur, x, y);
                     } else if (m instanceof Peintre) {
-                        tabIP[x][y].setBackground(icoPeintre);
+                        setSpanningMachineBackground(tabIP[x][y], m, icoPeintre, x, y);
                     }
 
-                    Item current = m.getCurrent();
+                    Item current = shouldDisplayCurrentItem ? m.getDisplayedItem(c) : null;
 
                     if (current instanceof ItemShape) {
                         tabIP[x][y].setShape((ItemShape) current);
                     }
                     if (current instanceof ItemColor) {
-                        // tabIP[x][y].setFront(); TODO : placer l'icone des couleurs approprié
+                        tabIP[x][y].setColorItem((ItemColor) current);
                     }
 
                 }
@@ -288,23 +313,83 @@ public class VueControleur extends JFrame implements Observer {
     private Image rotateImage(Image source, double angleDegrees) {
         int width = source.getWidth(null);
         int height = source.getHeight(null);
-        BufferedImage rotated = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int normalizedAngle = ((int) Math.round(angleDegrees) % 360 + 360) % 360;
+        int rotatedWidth = (normalizedAngle == 90 || normalizedAngle == 270) ? height : width;
+        int rotatedHeight = (normalizedAngle == 90 || normalizedAngle == 270) ? width : height;
+        BufferedImage rotated = new BufferedImage(rotatedWidth, rotatedHeight, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = rotated.createGraphics();
-        g2d.rotate(Math.toRadians(angleDegrees), width / 2.0, height / 2.0);
-        g2d.drawImage(source, 0, 0, null);
+        g2d.translate(rotatedWidth / 2.0, rotatedHeight / 2.0);
+        g2d.rotate(Math.toRadians(normalizedAngle));
+        g2d.drawImage(source, -width / 2, -height / 2, null);
         g2d.dispose();
         return rotated;
+    }
+
+    private void installerActionsClavier() {
+        String rotateSelectionAction = "rotate-selection";
+        JRootPane rootPane = getRootPane();
+        rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke(KeyEvent.VK_R, 0), rotateSelectionAction);
+        rootPane.getActionMap().put(rotateSelectionAction, new AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                jeu.rotateSelection();
+                mettreAJourAffichage();
+            }
+        });
+    }
+
+    private Image getMachineImage(Image baseImage, Direction direction) {
+        if (direction == null || direction == Direction.North) {
+            return baseImage;
+        }
+        if (direction == Direction.East) {
+            return rotateImage(baseImage, 90);
+        }
+        if (direction == Direction.South) {
+            return rotateImage(baseImage, 180);
+        }
+        return rotateImage(baseImage, 270);
+    }
+
+    private void setSpanningMachineBackground(ImagePanel panel, Machine machine, Image baseImage, int cellX, int cellY) {
+        modele.plateau.Point primaryPosition = plateau.getPosition(machine.getCase());
+        if (primaryPosition == null) {
+            return;
+        }
+
+        modele.plateau.Point[] footprint = machine.getFootprint(machine.getDirection());
+        int minOffsetX = 0;
+        int maxOffsetX = 0;
+        int minOffsetY = 0;
+        int maxOffsetY = 0;
+
+        for (modele.plateau.Point point : footprint) {
+            minOffsetX = Math.min(minOffsetX, point.x);
+            maxOffsetX = Math.max(maxOffsetX, point.x);
+            minOffsetY = Math.min(minOffsetY, point.y);
+            maxOffsetY = Math.max(maxOffsetY, point.y);
+        }
+
+        int originX = primaryPosition.x + minOffsetX;
+        int originY = primaryPosition.y + minOffsetY;
+        int offsetX = cellX - originX;
+        int offsetY = cellY - originY;
+        int spanX = maxOffsetX - minOffsetX + 1;
+        int spanY = maxOffsetY - minOffsetY + 1;
+
+        panel.setBackground(getMachineImage(baseImage, machine.getDirection()), offsetX, offsetY, spanX, spanY);
     }
 
     private JComponent createToolbar() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.add(createModeButton("Tapis", Jeu.BuildMode.TAPIS));
         panel.add(createModeButton("Mine", Jeu.BuildMode.MINE));
-        panel.add(createModeButton("Livraison", Jeu.BuildMode.LIVRAISON));
         panel.add(createModeButton("Poubelle", Jeu.BuildMode.POUBELLE));
         panel.add(createModeButton("Rotate", Jeu.BuildMode.ROTATEUR));
         panel.add(createModeButton("Cut", Jeu.BuildMode.COUPEUR));
         panel.add(createModeButton("Stack", Jeu.BuildMode.EMPILEUR));
+        panel.add(createModeButton("Mix", Jeu.BuildMode.MIXEUR));
         panel.add(createModeButton("Paint", Jeu.BuildMode.PEINTRE));
         modeLabel = new JLabel("Mode: " + jeu.getBuildMode().name());
         panel.add(modeLabel);

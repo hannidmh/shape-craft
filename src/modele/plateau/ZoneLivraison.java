@@ -1,21 +1,51 @@
 package modele.plateau;
 
+import modele.item.Color;
 import modele.item.ItemShape;
 
 public class ZoneLivraison extends Machine {
+    public static final int HUB_SIZE = 4;
 
     private int score = 0;
+    private ItemShape targetShape;
+    private int requiredDeliveries = 10;
+    private boolean acceptAnyHalf;
 
     public int getScore() {
         return score;
     }
 
+    public int getRequiredDeliveries() {
+        return requiredDeliveries;
+    }
+
+    public String getProgressLabel() {
+        return score + "/" + requiredDeliveries + " livre";
+    }
+
+    public ItemShape getTargetShape() {
+        return targetShape == null ? null : targetShape.copy();
+    }
+
     @Override
     public void work() {
-        if (!current.isEmpty()) {
-            current.remove(0); // on absorbe l'item reçu
-            score = score + 1;
-            System.out.println("Item livré ! Score : " + score);
+        if (current.isEmpty()) {
+            return;
+        }
+
+        if (!(current.getFirst() instanceof ItemShape received)) {
+            current.removeFirst(); // on ignore les items non supportés
+            return;
+        }
+
+        if (targetShape == null || isMatching(received)) {
+            current.removeFirst();
+            if (score < requiredDeliveries) {
+                score = score + 1;
+            }
+            System.out.println("Item livre ! " + getProgressLabel());
+        } else {
+            current.removeFirst(); // item non conforme
         }
     }
 
@@ -24,4 +54,28 @@ public class ZoneLivraison extends Machine {
         // La zone de livraison ne redirige rien
     }
 
+    public void setTargetShape(ItemShape targetShape) {
+        this.targetShape = targetShape;
+        this.acceptAnyHalf = false;
+    }
+
+    public void configureHalfCircleGoal(int requiredDeliveries) {
+        this.targetShape = new ItemShape(ItemShape.ShapeType.CIRCLE, Color.Gray, ItemShape.Part.LEFT);
+        this.requiredDeliveries = Math.max(1, requiredDeliveries);
+        this.acceptAnyHalf = true;
+    }
+
+    private boolean isMatching(ItemShape received) {
+        if (received == null || targetShape == null) {
+            return false;
+        }
+        if (acceptAnyHalf) {
+            return received.getType() == targetShape.getType()
+                    && received.getColor() == targetShape.getColor()
+                    && received.getPart() != ItemShape.Part.FULL;
+        }
+        return received.getType() == targetShape.getType()
+                && received.getColor() == targetShape.getColor()
+                && received.getPart() == targetShape.getPart();
+    }
 }
