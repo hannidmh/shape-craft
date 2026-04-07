@@ -9,6 +9,7 @@ public final class MixeurTest {
 
     public static void main(String[] args) {
         shouldAcceptTwoBottomInputsAndMixColors();
+        shouldTreatWhiteAsNeutralWhenMixing();
         shouldRejectWrongInputs();
         shouldRotateClockwiseAndMovePorts();
         System.out.println("MixeurTest: OK");
@@ -37,6 +38,31 @@ public final class MixeurTest {
         output.endTick();
 
         assertColor("red + green must produce yellow", output.getCurrent(), Color.Yellow);
+    }
+
+    private static void shouldTreatWhiteAsNeutralWhenMixing() {
+        Plateau plateau = new Plateau();
+
+        Mixeur mixeur = new Mixeur();
+        plateau.setMachine(5, 5, mixeur);
+        plateau.setMachine(6, 5, mixeur);
+
+        Tapis output = new Tapis();
+        plateau.setMachine(5, 4, output);
+
+        boolean acceptedLeft = mixeur.receive(new ItemColor(Color.White),
+                plateau.getCases()[5][5], plateau.getCases()[5][6]);
+        boolean acceptedRight = mixeur.receive(new ItemColor(Color.Red),
+                plateau.getCases()[6][5], plateau.getCases()[6][6]);
+
+        assertTrue("white input must still be accepted", acceptedLeft);
+        assertTrue("colored input must still be accepted", acceptedRight);
+
+        mixeur.work();
+        mixeur.send();
+        output.endTick();
+
+        assertColor("white + red must keep red instead of collapsing to white", output.getCurrent(), Color.Red);
     }
 
     private static void shouldRejectWrongInputs() {

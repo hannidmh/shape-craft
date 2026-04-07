@@ -19,6 +19,24 @@ public class ItemColor extends Item {
         if (add == null) {
             return;
         }
+        if (color == null) {
+            color = add;
+            return;
+        }
+        if (add == Color.Gray) {
+            return;
+        }
+        if (color == Color.Gray) {
+            color = add;
+            return;
+        }
+        if (color == Color.White && add != Color.White) {
+            color = add;
+            return;
+        }
+        if (add == Color.White && color != Color.White) {
+            return;
+        }
         color = fromMask(toMask(color) | toMask(add));
     }
 
@@ -39,7 +57,7 @@ public class ItemColor extends Item {
     }
 
     private Color fromMask(int mask) {
-        return switch (mask) {
+        return switch (mask % 8) {
             case 1 -> Color.Red;
             case 2 -> Color.Green;
             case 3 -> Color.Yellow;

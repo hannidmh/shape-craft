@@ -35,13 +35,14 @@ public class VueControleur extends JFrame implements Observer {
     private final int sizeY;
     private static final int pxCase = 82; // nombre de pixel par case
     // icones affichées dans la grille
-    private Image icoRouge;
     private Image icoTapisHaut;
     private Image icoTapisDroite;
     private Image icoTapisBas;
     private Image icoTapisGauche;
     private Image icoAngleDroite;
     private Image icoAngleGauche;
+    private Image icoTunnelEntry;
+    private Image icoTunnelExit;
     private Image icoPoubelle;
     private Image icoMine;
     private Image icoLivraison;
@@ -78,13 +79,14 @@ public class VueControleur extends JFrame implements Observer {
 
     private void chargerLesIcones() {
 
-        icoRouge = new ImageIcon("./data/sprites/colors/blue.png").getImage();
         icoTapisHaut = new ImageIcon("./data/sprites/buildings/belt_top.png").getImage();
         icoTapisDroite = rotateImage(icoTapisHaut, 90);
         icoTapisGauche = rotateImage(icoTapisHaut, 270);
         icoTapisBas = rotateImage(icoTapisHaut, 180);
         icoAngleDroite = new ImageIcon("./data/sprites/buildings/belt_right.png").getImage();
         icoAngleGauche = new ImageIcon("./data/sprites/buildings/belt_left.png").getImage();
+        icoTunnelEntry = new ImageIcon("./data/sprites/buildings/underground_belt_entry.png").getImage();
+        icoTunnelExit = new ImageIcon("./data/sprites/buildings/underground_belt_exit.png").getImage();
         icoPoubelle = new ImageIcon("./data/sprites/buildings/trash.png").getImage();
         icoMine = new ImageIcon("./data/sprites/buildings/miner.png").getImage();
         icoLivraison = new ImageIcon("./data/sprites/buildings/hub.png").getImage();
@@ -173,6 +175,7 @@ public class VueControleur extends JFrame implements Observer {
                 tabIP[x][y].setGisementColor(null);
                 tabIP[x][y].setOverlayShape(null);
                 tabIP[x][y].setOverlayText(null);
+                tabIP[x][y].setOverlayLevel(-1);
                 tabIP[x][y].setSelected(false);
 
                 Case c = plateau.getCases()[x][y];
@@ -192,6 +195,9 @@ public class VueControleur extends JFrame implements Observer {
 
                     if (m instanceof Tapis) {
                         tabIP[x][y].setBackground(getTapisImage((Tapis) m));
+                    } else if (m instanceof Tunnel tunnel) {
+                        Image tunnelImage = tunnel.usesEntryImage() ? icoTunnelEntry : icoTunnelExit;
+                        tabIP[x][y].setBackground(getMachineImage(tunnelImage, m.getDirection()));
                     } else if (m instanceof Poubelle) {
                         tabIP[x][y].setBackground(getMachineImage(icoPoubelle, m.getDirection()));
                     } else if (m instanceof Mine) {
@@ -204,8 +210,9 @@ public class VueControleur extends JFrame implements Observer {
                                 ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
                         tabIP[x][y].setOverlayShape(zoneLivraison.getTargetShape(), offsetX, offsetY,
                                 ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
-                        tabIP[x][y].setOverlayText(zoneLivraison.getProgressLabel(), offsetX, offsetY,
+                        tabIP[x][y].setOverlayText(zoneLivraison.getProgressFractionLabel(), offsetX, offsetY,
                                 ZoneLivraison.HUB_SIZE, ZoneLivraison.HUB_SIZE);
+                        tabIP[x][y].setOverlayLevel(zoneLivraison.getLevelNumber());
                         shouldDisplayCurrentItem = false;
                     } else if (m instanceof Rotateur) {
                         tabIP[x][y].setBackground(getMachineImage(icoRotateur, m.getDirection()));
@@ -384,6 +391,7 @@ public class VueControleur extends JFrame implements Observer {
     private JComponent createToolbar() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.add(createModeButton("Tapis", Jeu.BuildMode.TAPIS));
+        panel.add(createModeButton("Tunnel", Jeu.BuildMode.TUNNEL));
         panel.add(createModeButton("Mine", Jeu.BuildMode.MINE));
         panel.add(createModeButton("Poubelle", Jeu.BuildMode.POUBELLE));
         panel.add(createModeButton("Rotate", Jeu.BuildMode.ROTATEUR));

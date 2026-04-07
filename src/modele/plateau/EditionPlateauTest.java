@@ -143,7 +143,7 @@ public final class EditionPlateauTest {
         hub.incoming.add(new ItemShape(ItemShape.ShapeType.CIRCLE, modele.item.Color.Gray, ItemShape.Part.RIGHT));
         hub.endTick();
         hub.work();
-        assertEquals("right half circle must also be accepted", 2, hub.getScore());
+        assertEquals("right half circle must be rejected", 1, hub.getScore());
     }
 
     private static void shouldExposeHalfCircleProgressLabel() {

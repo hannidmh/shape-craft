@@ -5,6 +5,7 @@ import modele.plateau.Direction;
 import modele.plateau.Plateau;
 import modele.plateau.Poubelle;
 import modele.plateau.Tapis;
+import modele.plateau.Tunnel;
 import modele.plateau.Machine;
 import modele.plateau.ZoneLivraison;
 import modele.plateau.Rotateur;
@@ -15,7 +16,7 @@ import modele.plateau.Peintre;
 
 public class Jeu extends Thread {
     public enum BuildMode {
-        TAPIS, MINE, LIVRAISON, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, MIXEUR, PEINTRE
+        TAPIS, TUNNEL, MINE, LIVRAISON, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, MIXEUR, PEINTRE
     }
 
     private Plateau plateau;
@@ -25,11 +26,17 @@ public class Jeu extends Thread {
     private Machine selectedMachine;
 
     public Jeu() {
+        this(true);
+    }
+
+    public Jeu(boolean autoStart) {
         plateau = new Plateau();
 
         placeHub(6, 6, createDefaultHub());
 
-        start();
+        if (autoStart) {
+            start();
+        }
 
     }
 
@@ -94,13 +101,16 @@ public class Jeu extends Thread {
             return;
         }
 
+        Machine sourceMachine = plateau.getCases()[lastPlacedX][lastPlacedY].getMachine();
         Tapis previousTapis = placeOrUpdateTapis(lastPlacedX, lastPlacedY, direction);
-        if (previousTapis == null) {
+        boolean startsFromPlacedMachine = previousTapis == null
+                && sourceMachine != null
+                && !(sourceMachine instanceof Tapis);
+        if (previousTapis == null && !startsFromPlacedMachine) {
             lastPlacedX = x;
             lastPlacedY = y;
             return;
         }
-        previousTapis.setDirection(direction);
 
         Tapis currentTapis = placeOrUpdateTapis(x, y, direction);
         if (currentTapis == null) {
@@ -196,6 +206,7 @@ public class Jeu extends Thread {
 
         Machine machine = switch (buildMode) {
             case TAPIS -> new Tapis();
+            case TUNNEL -> createTunnelWithPlacementImageRole();
             case MINE -> plateau.getCases()[x][y].getGisement() == null ? null : new Mine();
             case LIVRAISON -> new ZoneLivraison(); // non utilisé (géré ci-dessus)
             case POUBELLE -> new Poubelle();
@@ -335,6 +346,24 @@ public class Jeu extends Thread {
             case East -> Direction.West;
             case West -> Direction.East;
         };
+    }
+
+    private Tunnel createTunnelWithPlacementImageRole() {
+        Tunnel tunnel = new Tunnel();
+        tunnel.setUsesEntryImage(countPlacedTunnels() % 2 == 0);
+        return tunnel;
+    }
+
+    private int countPlacedTunnels() {
+        int tunnelCount = 0;
+        for (int x = 0; x < Plateau.SIZE_X; x++) {
+            for (int y = 0; y < Plateau.SIZE_Y; y++) {
+                if (plateau.getCases()[x][y].getMachine() instanceof Tunnel) {
+                    tunnelCount++;
+                }
+            }
+        }
+        return tunnelCount;
     }
 
     private Machine getSelectedMachine() {

@@ -9,7 +9,7 @@ public class ZoneLivraison extends Machine {
     private int score = 0;
     private ItemShape targetShape;
     private int requiredDeliveries = 10;
-    private boolean acceptAnyHalf;
+    private int levelNumber = 1;
 
     public int getScore() {
         return score;
@@ -21,6 +21,14 @@ public class ZoneLivraison extends Machine {
 
     public String getProgressLabel() {
         return score + "/" + requiredDeliveries + " livre";
+    }
+
+    public String getProgressFractionLabel() {
+        return score + "/" + requiredDeliveries;
+    }
+
+    public int getLevelNumber() {
+        return levelNumber;
     }
 
     public ItemShape getTargetShape() {
@@ -56,23 +64,16 @@ public class ZoneLivraison extends Machine {
 
     public void setTargetShape(ItemShape targetShape) {
         this.targetShape = targetShape;
-        this.acceptAnyHalf = false;
     }
 
     public void configureHalfCircleGoal(int requiredDeliveries) {
         this.targetShape = new ItemShape(ItemShape.ShapeType.CIRCLE, Color.Gray, ItemShape.Part.LEFT);
         this.requiredDeliveries = Math.max(1, requiredDeliveries);
-        this.acceptAnyHalf = true;
     }
 
     private boolean isMatching(ItemShape received) {
         if (received == null || targetShape == null) {
             return false;
-        }
-        if (acceptAnyHalf) {
-            return received.getType() == targetShape.getType()
-                    && received.getColor() == targetShape.getColor()
-                    && received.getPart() != ItemShape.Part.FULL;
         }
         return received.getType() == targetShape.getType()
                 && received.getColor() == targetShape.getColor()

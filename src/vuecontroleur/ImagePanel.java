@@ -7,7 +7,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public class ImagePanel extends JPanel {
     private Image imgBackground;
@@ -18,6 +20,7 @@ public class ImagePanel extends JPanel {
     private ItemColor gisementColor;
     private ItemShape overlayShape;
     private String overlayText;
+    private int overlayLevel = -1;
     private boolean selected;
 
     private int backgroundOffsetX;
@@ -34,6 +37,11 @@ public class ImagePanel extends JPanel {
     private int overlayTextOffsetY;
     private int overlayTextSpanX = 1;
     private int overlayTextSpanY = 1;
+    private final Map<modele.item.Color, Image> depositColorImages = new EnumMap<modele.item.Color, Image>(modele.item.Color.class);
+
+    public ImagePanel() {
+        loadDepositColorImages();
+    }
 
     public void setShape(ItemShape _shape) {
         shape = _shape;
@@ -73,6 +81,10 @@ public class ImagePanel extends JPanel {
         overlayShapeOffsetY = offsetY;
         overlayShapeSpanX = Math.max(1, spanX);
         overlayShapeSpanY = Math.max(1, spanY);
+    }
+
+    public void setOverlayLevel(int overlayLevel) {
+        this.overlayLevel = overlayLevel;
     }
 
     public void setBackground(Image _imgBackground) {
@@ -138,7 +150,7 @@ public class ImagePanel extends JPanel {
         if (gisementColor != null) {
             Graphics2D g2d = (Graphics2D) g.create();
             g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
-            drawColorItem(g2d, gisementColor, xBack + widthBack / 5, yBack + heigthBack / 5,
+            drawColorDeposit(g2d, gisementColor, xBack + widthBack / 5, yBack + heigthBack / 5,
                     widthBack * 3 / 5, heigthBack * 3 / 5);
             g2d.dispose();
         }
@@ -150,7 +162,7 @@ public class ImagePanel extends JPanel {
             drawColorItem(g, colorItem, xFront, yFront, widthFront, heigthFront);
         }
 
-        if (overlayShape != null) {
+        if (overlayShape != null && !isHubOverlayStyle()) {
             drawSpanningShape(g, overlayShape, xBack, yBack, widthBack, heigthBack,
                     overlayShapeOffsetX, overlayShapeOffsetY, overlayShapeSpanX, overlayShapeSpanY);
         }
@@ -291,12 +303,29 @@ public class ImagePanel extends JPanel {
         if (colorItem == null) {
             return;
         }
+        Image colorImage = depositColorImages.get(colorItem.getColor());
+        if (colorImage != null) {
+            g.drawImage(colorImage, x, y, width, height, this);
+            return;
+        }
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setColor(toAwtColor(colorItem.getColor()));
         g2d.fillRoundRect(x + width / 6, y + height / 6, width * 2 / 3, height * 2 / 3, 12, 12);
         g2d.setColor(new Color(40, 40, 40, 180));
         g2d.drawRoundRect(x + width / 6, y + height / 6, width * 2 / 3, height * 2 / 3, 12, 12);
         g2d.dispose();
+    }
+
+    private void drawColorDeposit(Graphics g, ItemColor colorItem, int x, int y, int width, int height) {
+        if (colorItem == null) {
+            return;
+        }
+        Image depositImage = depositColorImages.get(colorItem.getColor());
+        if (depositImage != null) {
+            g.drawImage(depositImage, x, y, width, height, this);
+            return;
+        }
+        drawColorItem(g, colorItem, x, y, width, height);
     }
 
     private void drawSpanningShape(Graphics g, ItemShape shape, int x, int y, int width, int height,
@@ -313,6 +342,11 @@ public class ImagePanel extends JPanel {
 
     private void drawSpanningOverlayText(Graphics g, String text, int x, int y, int width, int height,
             int offsetX, int offsetY, int spanX, int spanY) {
+        if (isHubOverlayStyle()) {
+            drawHubOverlayCard(g, x, y, width, height, offsetX, offsetY, spanX, spanY);
+            return;
+        }
+
         Graphics2D g2d = (Graphics2D) g.create();
         int fullX = x - offsetX * width;
         int fullY = y - offsetY * height;
@@ -333,5 +367,85 @@ public class ImagePanel extends JPanel {
         g2d.drawRoundRect(boxX, boxY, boxWidth, boxHeight, 12, 12);
         g2d.drawString(text, boxX + 10, boxY + metrics.getAscent() + 5);
         g2d.dispose();
+    }
+
+    private boolean isHubOverlayStyle() {
+        return overlayLevel >= 0 && overlayText != null && overlayText.contains("/");
+    }
+
+    private void drawHubOverlayCard(Graphics g, int x, int y, int width, int height,
+            int offsetX, int offsetY, int spanX, int spanY) {
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        int fullX = x - offsetX * width;
+        int fullY = y - offsetY * height;
+        int fullWidth = width * spanX;
+        int fullHeight = height * spanY;
+
+        int cardX = fullX + Math.max(12, fullWidth / 10);
+        int cardY = fullY + Math.max(10, fullHeight / 12);
+        int cardWidth = fullWidth - Math.max(24, fullWidth / 5);
+        int cardHeight = fullHeight - Math.max(20, fullHeight / 5);
+
+        g2d.setColor(new Color(214, 217, 226, 236));
+        g2d.fillRoundRect(cardX, cardY, cardWidth, cardHeight, 14, 14);
+        g2d.setColor(new Color(145, 148, 157, 210));
+        g2d.drawRoundRect(cardX, cardY, cardWidth, cardHeight, 14, 14);
+
+        int badgeWidth = Math.max(26, cardWidth / 6);
+        int badgeHeight = Math.max(34, cardHeight / 4);
+        int badgeX = cardX + Math.max(6, cardWidth / 18);
+        int badgeY = cardY + Math.max(6, cardHeight / 20);
+        g2d.setColor(new Color(241, 25, 92));
+        g2d.fillRoundRect(badgeX, badgeY, badgeWidth, badgeHeight, 7, 7);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(8f, cardWidth / 22f)));
+        FontMetrics badgeSmall = g2d.getFontMetrics();
+        g2d.drawString("LVL", badgeX + (badgeWidth - badgeSmall.stringWidth("LVL")) / 2, badgeY + badgeHeight / 3);
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(14f, cardWidth / 13f)));
+        FontMetrics badgeBig = g2d.getFontMetrics();
+        String levelText = Integer.toString(overlayLevel);
+        g2d.drawString(levelText, badgeX + (badgeWidth - badgeBig.stringWidth(levelText)) / 2,
+                badgeY + badgeHeight - Math.max(4, badgeHeight / 8));
+
+        g2d.setColor(new Color(100, 104, 114));
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(17f, cardWidth / 9f)));
+        g2d.drawString("DELIVER", cardX + cardWidth / 2 - Math.max(8, cardWidth / 5), cardY + cardHeight / 5);
+
+        int iconSize = Math.max(36, Math.min(cardWidth, cardHeight) / 3);
+        int iconX = cardX + Math.max(14, cardWidth / 10);
+        int iconY = cardY + cardHeight / 3;
+        if (overlayShape != null) {
+            drawShape(g2d, overlayShape, iconX, iconY, iconSize, iconSize);
+        }
+
+        String[] parts = overlayText.split("/");
+        String currentPart = parts.length > 0 ? parts[0] : "0";
+        String requiredPart = parts.length > 1 ? parts[1] : "0";
+
+        int scoreX = iconX + iconSize + Math.max(10, cardWidth / 14);
+        int scoreY = iconY + iconSize / 2;
+        g2d.setColor(new Color(90, 92, 101));
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(42f, cardWidth / 5f)));
+        g2d.drawString(currentPart.trim(), scoreX, scoreY);
+
+        g2d.setFont(getFont().deriveFont(Font.BOLD, Math.max(26f, cardWidth / 8f)));
+        g2d.setColor(new Color(144, 148, 156));
+        g2d.drawString("/" + requiredPart.trim(), scoreX - Math.max(2, cardWidth / 40), scoreY + Math.max(34, cardHeight / 5));
+
+        g2d.dispose();
+    }
+
+    private void loadDepositColorImages() {
+        depositColorImages.put(modele.item.Color.Red, new ImageIcon("./data/sprites/colors/red.png").getImage());
+        depositColorImages.put(modele.item.Color.Green, new ImageIcon("./data/sprites/colors/green.png").getImage());
+        depositColorImages.put(modele.item.Color.Blue, new ImageIcon("./data/sprites/colors/blue.png").getImage());
+        depositColorImages.put(modele.item.Color.Yellow, new ImageIcon("./data/sprites/colors/yellow.png").getImage());
+        depositColorImages.put(modele.item.Color.Purple, new ImageIcon("./data/sprites/colors/purple.png").getImage());
+        depositColorImages.put(modele.item.Color.Cyan, new ImageIcon("./data/sprites/colors/cyan.png").getImage());
+        depositColorImages.put(modele.item.Color.White, new ImageIcon("./data/sprites/colors/white.png").getImage());
+        depositColorImages.put(modele.item.Color.Gray, new ImageIcon("./data/sprites/colors/uncolored.png").getImage());
     }
 }
