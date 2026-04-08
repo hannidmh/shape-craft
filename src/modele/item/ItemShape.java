@@ -7,7 +7,7 @@ package modele.item;
 public class ItemShape extends Item {
 
     public enum ShapeType { CIRCLE, SQUARE, STAR, FAN }
-    public enum Part { FULL, LEFT, RIGHT }
+    public enum Part { FULL, LEFT, TOP, RIGHT, BOTTOM, TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
     private final ShapeType type;
     private Color color;
@@ -56,15 +56,35 @@ public class ItemShape extends Item {
      * gauche et la moitié droite est renvoyée.
      */
     public ItemShape Cut() {
-        if (part != Part.FULL) {
-            return null; // déjà découpée, on ignore
+        switch (part) {
+            case FULL -> {
+                this.part = Part.LEFT;
+                ItemShape rightHalf = new ItemShape(type, color, Part.RIGHT);
+                if (stackedTop != null) {
+                    rightHalf.stackedTop = stackedTop.Cut();
+                }
+                return rightHalf;
+            }
+            case TOP -> {
+                this.part = Part.TOP_LEFT;
+                ItemShape topRight = new ItemShape(type, color, Part.TOP_RIGHT);
+                if (stackedTop != null) {
+                    topRight.stackedTop = stackedTop.Cut();
+                }
+                return topRight;
+            }
+            case BOTTOM -> {
+                this.part = Part.BOTTOM_LEFT;
+                ItemShape bottomRight = new ItemShape(type, color, Part.BOTTOM_RIGHT);
+                if (stackedTop != null) {
+                    bottomRight.stackedTop = stackedTop.Cut();
+                }
+                return bottomRight;
+            }
+            default -> {
+                return null; // déjà au quart, rien à couper
+            }
         }
-        this.part = Part.LEFT;
-        ItemShape rightHalf = new ItemShape(type, color, Part.RIGHT);
-        if (stackedTop != null) {
-            rightHalf.stackedTop = stackedTop.Cut();
-        }
-        return rightHalf;
     }
 
     /**
@@ -72,10 +92,17 @@ public class ItemShape extends Item {
      * cohérent visuellement. Les formes pleines sont inchangées.
      */
     public void rotate() {
-        if (part == Part.LEFT) {
-            part = Part.RIGHT;
-        } else if (part == Part.RIGHT) {
-            part = Part.LEFT;
+        switch (part) {
+            case LEFT -> part = Part.TOP;
+            case TOP -> part = Part.RIGHT;
+            case RIGHT -> part = Part.BOTTOM;
+            case BOTTOM -> part = Part.LEFT;
+            case TOP_LEFT -> part = Part.TOP_RIGHT;
+            case TOP_RIGHT -> part = Part.BOTTOM_RIGHT;
+            case BOTTOM_RIGHT -> part = Part.BOTTOM_LEFT;
+            case BOTTOM_LEFT -> part = Part.TOP_LEFT;
+            case FULL -> {
+            }
         }
         if (stackedTop != null) {
             stackedTop.rotate();

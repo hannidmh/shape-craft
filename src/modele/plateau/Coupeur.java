@@ -26,17 +26,16 @@ public class Coupeur extends Machine {
         if (!(input instanceof ItemShape shape)) {
             return;
         }
-        if (shape.getPart() != ItemShape.Part.FULL) {
+        if (!canCut(shape)) {
             return;
         }
 
         current.removeFirst();
 
-        // La forme d'entree devient la moitie gauche, et on memorise les deux
-        // sorties separement pour eviter toute inversion liee a l'ordre de liste.
-        ItemShape producedRight = shape.Cut();
+        // La forme d'entree est coupée et affectée aux deux sorties
+        ItemShape producedSecond = shape.Cut();
         leftOutput = shape;
-        rightOutput = producedRight;
+        rightOutput = producedSecond;
     }
 
     @Override
@@ -81,6 +80,16 @@ public class Coupeur extends Machine {
 
     private boolean hasPendingOutputs() {
         return leftOutput != null || rightOutput != null;
+    }
+
+    private boolean canCut(ItemShape shape) {
+        if (shape == null) {
+            return false;
+        }
+        return switch (shape.getPart()) {
+            case FULL, TOP, BOTTOM -> true;
+            default -> false;
+        };
     }
 
     private ItemShape sendTo(Case targetCase, Case sourceCase, ItemShape output) {

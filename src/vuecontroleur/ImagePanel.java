@@ -269,6 +269,18 @@ public class ImagePanel extends JPanel {
             g2d.setClip(x, y, width / 2, height);
         } else if (shape.getPart() == ItemShape.Part.RIGHT) {
             g2d.setClip(x + width / 2, y, width / 2, height);
+        } else if (shape.getPart() == ItemShape.Part.TOP) {
+            g2d.setClip(x, y, width, height / 2);
+        } else if (shape.getPart() == ItemShape.Part.BOTTOM) {
+            g2d.setClip(x, y + height / 2, width, height / 2);
+        } else if (shape.getPart() == ItemShape.Part.TOP_LEFT) {
+            g2d.setClip(x, y, width / 2, height / 2);
+        } else if (shape.getPart() == ItemShape.Part.TOP_RIGHT) {
+            g2d.setClip(x + width / 2, y, width / 2, height / 2);
+        } else if (shape.getPart() == ItemShape.Part.BOTTOM_LEFT) {
+            g2d.setClip(x, y + height / 2, width / 2, height / 2);
+        } else if (shape.getPart() == ItemShape.Part.BOTTOM_RIGHT) {
+            g2d.setClip(x + width / 2, y + height / 2, width / 2, height / 2);
         }
 
         switch (shape.getType()) {

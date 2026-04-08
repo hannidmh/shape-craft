@@ -319,7 +319,6 @@ public class Jeu extends Thread {
 
     private ZoneLivraison createDefaultHub() {
         ZoneLivraison hub = new ZoneLivraison();
-        hub.configureHalfCircleGoal(10);
         return hub;
     }
 
