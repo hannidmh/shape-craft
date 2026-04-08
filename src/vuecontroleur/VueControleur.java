@@ -18,23 +18,12 @@ import modele.item.ItemShape;
 import modele.jeu.Jeu;
 import modele.plateau.*;
 
-/**
- * Cette classe a deux fonctions :
- * (1) Vue : proposer une représentation graphique de l'application (cases
- * graphiques, etc.)
- * (2) Controleur : écouter les évènements clavier et déclencher le traitement
- * adapté sur le modèle
- *
- */
 public class VueControleur extends JFrame implements Observer {
-    private Plateau plateau; // référence sur une classe de modèle : permet d'accéder aux données du modèle
-                             // pour le rafraichissement, permet de communiquer les actions clavier (ou
-                             // souris)
-    private Jeu jeu;
-    private final int sizeX; // taille de la grille affichée
+    private final Plateau plateau;
+    private final Jeu jeu;
+    private final int sizeX;
     private final int sizeY;
-    private static final int pxCase = 82; // nombre de pixel par case
-    // icones affichées dans la grille
+    private static final int pxCase = 82;
     private Image icoTapisHaut;
     private Image icoTapisDroite;
     private Image icoTapisBas;
@@ -55,17 +44,16 @@ public class VueControleur extends JFrame implements Observer {
     private JComponent grilleIP;
     private JLabel modeLabel;
 
-    private boolean mousePressed = false; // permet de mémoriser l'état de la souris
+    private boolean mousePressed = false;
     private int pressedMouseButton = MouseEvent.NOBUTTON;
 
-    private ImagePanel[][] tabIP; // cases graphique (au moment du rafraichissement, chaque case va être associée
-                                  // à une icône background et front, suivant ce qui est présent dans le modèle)
+    private ImagePanel[][] tabIP;
 
     public VueControleur(Jeu _jeu) {
         jeu = _jeu;
         plateau = jeu.getPlateau();
-        sizeX = plateau.SIZE_X;
-        sizeY = plateau.SIZE_Y;
+        sizeX = Plateau.SIZE_X;
+        sizeY = Plateau.SIZE_Y;
 
         chargerLesIcones();
         placerLesComposantsGraphiques();
@@ -102,11 +90,10 @@ public class VueControleur extends JFrame implements Observer {
         setTitle("ShapeCraft");
         setResizable(true);
         setSize(sizeX * pxCase, sizeX * pxCase + 100);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // permet de terminer l'application à la fermeture de la fenêtre
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        grilleIP = new JPanel(new GridLayout(sizeY, sizeX)); // grilleJLabels va contenir les cases graphiques et les
-                                                             // positionner sous la forme d'une grille
+        grilleIP = new JPanel(new GridLayout(sizeY, sizeX));
 
         tabIP = new ImagePanel[sizeX][sizeY];
 
@@ -114,12 +101,10 @@ public class VueControleur extends JFrame implements Observer {
             for (int x = 0; x < sizeX; x++) {
                 ImagePanel iP = new ImagePanel();
 
-                tabIP[x][y] = iP; // on conserve les cases graphiques dans tabJLabel pour avoir un accès pratique
-                                  // à celles-ci (voir mettreAJourAffichage() )
+                tabIP[x][y] = iP;
 
-                final int xx = x; // permet de compiler la classe anonyme ci-dessous
+                final int xx = x;
                 final int yy = y;
-                // écouteur de clics
                 iP.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseEntered(MouseEvent e) {
@@ -155,13 +140,10 @@ public class VueControleur extends JFrame implements Observer {
             }
         }
         add(grilleIP, BorderLayout.CENTER);
+        add(createHelpBar(), BorderLayout.NORTH);
         add(createToolbar(), BorderLayout.SOUTH);
     }
 
-    /**
-     * Il y a une grille du côté du modèle ( jeu.getGrille() ) et une grille du côté
-     * de la vue (tabIP)
-     */
     private void mettreAJourAffichage() {
 
         for (int x = 0; x < sizeX; x++) {
@@ -180,7 +162,6 @@ public class VueControleur extends JFrame implements Observer {
 
                 Case c = plateau.getCases()[x][y];
 
-                // Affichage du gisement si la case en a un
                 if (c.getGisement() instanceof ItemShape gisementShape) {
                     tabIP[x][y].setGisementShape(gisementShape);
                 } else if (c.getGisement() instanceof ItemColor gisementColor) {
@@ -248,14 +229,7 @@ public class VueControleur extends JFrame implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                mettreAJourAffichage();
-            }
-        });
-
+        SwingUtilities.invokeLater(this::mettreAJourAffichage);
     }
 
     private Image getTapisImage(Tapis tapis) {
@@ -389,23 +363,90 @@ public class VueControleur extends JFrame implements Observer {
     }
 
     private JComponent createToolbar() {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        panel.add(createModeButton("Tapis", Jeu.BuildMode.TAPIS));
-        panel.add(createModeButton("Tunnel", Jeu.BuildMode.TUNNEL));
-        panel.add(createModeButton("Mine", Jeu.BuildMode.MINE));
-        panel.add(createModeButton("Poubelle", Jeu.BuildMode.POUBELLE));
-        panel.add(createModeButton("Rotate", Jeu.BuildMode.ROTATEUR));
-        panel.add(createModeButton("Cut", Jeu.BuildMode.COUPEUR));
-        panel.add(createModeButton("Stack", Jeu.BuildMode.EMPILEUR));
-        panel.add(createModeButton("Mix", Jeu.BuildMode.MIXEUR));
-        panel.add(createModeButton("Paint", Jeu.BuildMode.PEINTRE));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panel.add(createModeButton(icoTapisHaut, "Tapis", Jeu.BuildMode.TAPIS));
+        panel.add(createModeButton(icoTunnelEntry, "Tunnel", Jeu.BuildMode.TUNNEL));
+        panel.add(createModeButton(icoMine, "Mine", Jeu.BuildMode.MINE));
+        panel.add(createModeButton(icoPoubelle, "Poubelle", Jeu.BuildMode.POUBELLE));
+        panel.add(createModeButton(icoRotateur, "Rotateur", Jeu.BuildMode.ROTATEUR));
+        panel.add(createModeButton(icoCoupeur, "Coupeur", Jeu.BuildMode.COUPEUR));
+        panel.add(createModeButton(icoEmpileur, "Empileur", Jeu.BuildMode.EMPILEUR));
+        panel.add(createModeButton(icoMixeur, "Mixeur", Jeu.BuildMode.MIXEUR));
+        panel.add(createModeButton(icoPeintre, "Peintre", Jeu.BuildMode.PEINTRE));
         modeLabel = new JLabel("Mode: " + jeu.getBuildMode().name());
+        modeLabel.setFont(modeLabel.getFont().deriveFont(Font.BOLD, 18f));
         panel.add(modeLabel);
         return panel;
     }
 
-    private JButton createModeButton(String label, Jeu.BuildMode mode) {
-        JButton button = new JButton(label);
+    private JComponent createHelpBar() {
+        JPanel bar = new JPanel(new FlowLayout(FlowLayout.CENTER, 22, 12));
+        bar.setBackground(new Color(24, 38, 58));
+        bar.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+
+        bar.add(createHelpItem("./data/sprites/icones/click-gauche.png", "L", new Color(78, 174, 92), "Placer"));
+        bar.add(createHelpItem("./data/sprites/icones/click-gauche.png", "L+", new Color(108, 125, 230), "Tracer (glisser)"));
+        bar.add(createHelpItem("./data/sprites/icones/clic-droit(1).png", "R", new Color(205, 75, 75), "Supprimer"));
+        bar.add(createHelpItem("./data/sprites/icones/R.png", "R", new Color(230, 165, 72), "Pivoter"));
+
+        return bar;
+    }
+
+    private JComponent createHelpItem(String iconPath, String badgeText, Color badgeColor, String action) {
+        JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        item.setOpaque(false);
+
+        JLabel iconLabel = createHelpIconLabel(iconPath);
+
+        JLabel badge = new JLabel(badgeText, SwingConstants.CENTER);
+        badge.setOpaque(true);
+        badge.setBackground(badgeColor);
+        badge.setForeground(Color.WHITE);
+        badge.setFont(badge.getFont().deriveFont(Font.BOLD, 16f));
+        badge.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+
+        JLabel actionLabel = new JLabel(action);
+        actionLabel.setForeground(new Color(235, 238, 244));
+        actionLabel.setFont(actionLabel.getFont().deriveFont(Font.PLAIN, 16f));
+
+        item.add(iconLabel);
+        item.add(badge);
+        item.add(actionLabel);
+        return item;
+    }
+
+    private JLabel createHelpIconLabel(String iconPath) {
+        JLabel iconLabel = new JLabel();
+        iconLabel.setPreferredSize(new Dimension(40, 40));
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        iconLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        try {
+            Image icon = ImageIO.read(new File(iconPath));
+            if (icon != null) {
+                iconLabel.setIcon(new ImageIcon(icon.getScaledInstance(36, 36, Image.SCALE_SMOOTH)));
+                return iconLabel;
+            }
+        } catch (IOException ignored) {
+        }
+
+        iconLabel.setText("?");
+        iconLabel.setForeground(new Color(200, 206, 217));
+        iconLabel.setFont(iconLabel.getFont().deriveFont(Font.BOLD, 18f));
+        return iconLabel;
+    }
+
+    private JButton createModeButton(Image iconImage, String tooltip, Jeu.BuildMode mode) {
+        Image scaled = iconImage.getScaledInstance(88, 88, Image.SCALE_SMOOTH);
+        JButton button = new JButton(new ImageIcon(scaled));
+        button.setToolTipText(tooltip);
+        button.setPreferredSize(new Dimension(120, 100));
+        button.setHorizontalAlignment(SwingConstants.CENTER);
+        button.setVerticalAlignment(SwingConstants.CENTER);
+        button.setHorizontalTextPosition(SwingConstants.CENTER);
+        button.setVerticalTextPosition(SwingConstants.BOTTOM);
+        button.setMargin(new Insets(0, 0, 0, 0));
+        button.setFocusPainted(false);
         button.addActionListener(e -> {
             jeu.setBuildMode(mode);
             if (modeLabel != null) {

@@ -254,9 +254,10 @@ public class ImagePanel extends JPanel {
         int layerWidth = Math.max(4, width);
         int layerHeight = Math.max(4, height - maxShift);
         int layerX = x;
+        int centeredStartY = y - (maxShift / 2);
 
         for (int i = 0; i < layers.size(); i++) {
-            int layerY = y + (layers.size() - 1 - i) * layerOffset;
+            int layerY = centeredStartY + (layers.size() - 1 - i) * layerOffset;
             drawSingleShape(g, layers.get(i), layerX, layerY, layerWidth, layerHeight);
         }
     }

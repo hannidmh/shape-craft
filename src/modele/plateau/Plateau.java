@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package modele.plateau;
 
 import java.util.HashSet;
@@ -19,9 +14,8 @@ public class Plateau extends Observable implements Runnable {
     public static final int SIZE_X = 16;
     public static final int SIZE_Y = 16;
 
-    private HashMap<Case, Point> map = new HashMap<Case, Point>(); // permet de récupérer la position d'une case à
-                                                                   // partir de sa référence
-    private Case[][] grilleCases = new Case[SIZE_X][SIZE_Y]; // permet de récupérer une case à partir de ses coordonnées
+    private HashMap<Case, Point> map = new HashMap<Case, Point>();
+    private Case[][] grilleCases = new Case[SIZE_X][SIZE_Y];
 
     public Plateau() {
         initPlateauVide();
@@ -55,12 +49,10 @@ public class Plateau extends Observable implements Runnable {
             }
 
         }
-        // Gisements de couleurs primaires en haut de la map : 3 groupes de 3 cases.
         addColorDepositStrip(0, 0, Color.Red);
         addColorDepositStrip(4, 0, Color.Green);
         addColorDepositStrip(8, 0, Color.Blue);
 
-        // Gisements fixes en bas de la map : 4 groupes de 3 cases.
         addDepositStrip(1, SIZE_Y - 1, ItemShape.ShapeType.CIRCLE);
         addDepositStrip(5, SIZE_Y - 1, ItemShape.ShapeType.SQUARE);
         addDepositStrip(9, SIZE_Y - 1, ItemShape.ShapeType.STAR);
@@ -163,9 +155,6 @@ public class Plateau extends Observable implements Runnable {
         return true;
     }
 
-    /**
-     * Indique si p est contenu dans la grille
-     */
     private boolean contenuDansGrille(Point p) {
         return p.x >= 0 && p.x < SIZE_X && p.y >= 0 && p.y < SIZE_Y;
     }

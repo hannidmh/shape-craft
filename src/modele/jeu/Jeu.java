@@ -16,10 +16,10 @@ import modele.plateau.Peintre;
 
 public class Jeu extends Thread {
     public enum BuildMode {
-        TAPIS, TUNNEL, MINE, LIVRAISON, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, MIXEUR, PEINTRE
+        TAPIS, TUNNEL, MINE, POUBELLE, ROTATEUR, COUPEUR, EMPILEUR, MIXEUR, PEINTRE
     }
 
-    private Plateau plateau;
+    private final Plateau plateau;
     private int lastPlacedX = -1;
     private int lastPlacedY = -1;
     private BuildMode buildMode = BuildMode.TAPIS;
@@ -32,7 +32,7 @@ public class Jeu extends Thread {
     public Jeu(boolean autoStart) {
         plateau = new Plateau();
 
-        placeHub(6, 6, createDefaultHub());
+        placeInitialHub(6, 6, createDefaultHub());
 
         if (autoStart) {
             start();
@@ -58,9 +58,6 @@ public class Jeu extends Thread {
         Machine existingMachine = plateau.getCases()[x][y].getMachine();
         if (existingMachine != null) {
             selectMachine(existingMachine);
-            if (!(existingMachine instanceof Tapis) || buildMode != BuildMode.TAPIS) {
-                return;
-            }
             return;
         }
 
@@ -126,6 +123,7 @@ public class Jeu extends Thread {
         lastPlacedY = y;
     }
 
+    @Override
     public void run() {
         jouerPartie();
     }
@@ -144,12 +142,12 @@ public class Jeu extends Thread {
 
     }
 
-    public boolean rotateSelection() {
+    public void rotateSelection() {
         Machine machine = getSelectedMachine();
         if (machine == null) {
-            return false;
+            return;
         }
-        return plateau.rotateMachine(machine);
+        plateau.rotateMachine(machine);
     }
 
     public boolean isSelectedMachine(Machine machine) {
@@ -199,16 +197,10 @@ public class Jeu extends Thread {
             placeMixeur(x, y);
             return;
         }
-        if (buildMode == BuildMode.LIVRAISON) {
-            clearSelection();
-            return;
-        }
-
         Machine machine = switch (buildMode) {
             case TAPIS -> new Tapis();
             case TUNNEL -> createTunnelWithPlacementImageRole();
             case MINE -> plateau.getCases()[x][y].getGisement() == null ? null : new Mine();
-            case LIVRAISON -> new ZoneLivraison(); // non utilisé (géré ci-dessus)
             case POUBELLE -> new Poubelle();
             case ROTATEUR -> new Rotateur();
             case COUPEUR -> throw new IllegalStateException("Coupeur géré à part");
@@ -292,16 +284,10 @@ public class Jeu extends Thread {
         selectMachine(mixeur);
     }
 
-    /**
-     * Place un hub 4x4 à partir de la coordonnée (x,y) (coin haut-gauche). Toutes
-     * les cases doivent être libres et dans la grille. La même instance est
-     * référencée sur les 16 cases ; seule la case principale (x,y) exécute run().
-     */
-    private void placeHub(int x, int y, ZoneLivraison hub) {
+    private void placeInitialHub(int x, int y, ZoneLivraison hub) {
         if (x + 3 >= Plateau.SIZE_X || y + 3 >= Plateau.SIZE_Y) {
             return;
         }
-        // vérification de disponibilité
         for (int dx = 0; dx < 4; dx++) {
             for (int dy = 0; dy < 4; dy++) {
                 if (plateau.getCases()[x + dx][y + dy].getMachine() != null) {
@@ -309,7 +295,6 @@ public class Jeu extends Thread {
                 }
             }
         }
-        // placement
         for (int dx = 0; dx < 4; dx++) {
             for (int dy = 0; dy < 4; dy++) {
                 plateau.setMachine(x + dx, y + dy, hub);
@@ -318,8 +303,7 @@ public class Jeu extends Thread {
     }
 
     private ZoneLivraison createDefaultHub() {
-        ZoneLivraison hub = new ZoneLivraison();
-        return hub;
+        return new ZoneLivraison();
     }
 
     private Direction directionFromDelta(int dx, int dy) {

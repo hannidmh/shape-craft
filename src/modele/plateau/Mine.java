@@ -24,7 +24,6 @@ public class Mine extends Machine {
 
     private Item duplicateItem(Item source) {
         if (source instanceof ItemShape shape) {
-            // Toujours générer une forme pleine et grise du type du gisement
             return new ItemShape(shape.getType());
         }
         if (source instanceof ItemColor itemColor) {

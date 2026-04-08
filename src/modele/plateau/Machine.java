@@ -9,12 +9,12 @@ public abstract class Machine implements Runnable {
     LinkedList<Item> incoming;
 
     Case c;
-    Direction d = Direction.North ; // par défaut, pour commencer, tout est orienté au north
+    Direction d = Direction.North ;
 
     public Machine()
     {
-        current = new LinkedList<Item>();
-        incoming = new LinkedList<Item>();
+        current = new LinkedList<>();
+        incoming = new LinkedList<>();
     }
 
     public Machine(Item _item) {
@@ -40,11 +40,6 @@ public abstract class Machine implements Runnable {
         }
     }
 
-    /**
-     * Indique si la case donnée est la case principale de la machine (utile pour
-     * les bâtiments multi-cases). Par défaut, la première case associée est la
-     * principale.
-     */
     public boolean isPrimaryCase(Case currentCase) {
         return c == currentCase;
     }
@@ -54,46 +49,32 @@ public abstract class Machine implements Runnable {
     }
 
     public Item getCurrent() {
-        if (current.size() > 0) {
-            return current.get(0);
+        if (!current.isEmpty()) {
+            return current.getFirst();
         } else {
             return null;
         }
     }
 
-    /**
-     * Permet aux machines multi-cases d'afficher un contenu different selon la
-     * case sur laquelle on les dessine.
-     */
     public Item getDisplayedItem(Case currentCase) {
         return getCurrent();
     }
 
-    /**
-     * Cases occupees par la machine relativement a sa case principale.
-     */
     public Point[] getFootprint(Direction direction) {
         return new Point[] { new Point(0, 0) };
     }
 
-    /**
-     * Vide tout le contenu transporte par la machine lorsqu'elle est supprimee.
-     */
     public void clearItems() {
         current.clear();
         incoming.clear();
     }
 
-    /**
-     * Point d'entree des items vers une machine. Les machines simples acceptent
-     * tout, les machines multi-entrees peuvent filtrer selon la case cible.
-     */
     public boolean receive(Item item, Case targetCase, Case sourceCase) {
         incoming.add(item);
         return true;
     }
 
-    public void send() // la machine dépose un item sur sa ou ses sorties
+    public void send()
     {
         Case up = c.plateau.getCase(c, d);
         if (up != null) {
@@ -116,7 +97,7 @@ public abstract class Machine implements Runnable {
 
     public void work() {
 
-    }; // action de la machine, aucune par défaut
+    }
 
     @Override
     public void run() {

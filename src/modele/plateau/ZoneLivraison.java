@@ -22,19 +22,15 @@ public class ZoneLivraison extends Machine {
 
     private final LevelDef[] levels = new LevelDef[] {
 
-            // Niveau 1 : demi-cercle gris (hérité du projet initial)
-            new LevelDef(new ItemShape(ItemShape.ShapeType.CIRCLE, Color.Red, ItemShape.Part.FULL), 10),
-            // Niveau 2 : carré plein rouge
-            new LevelDef(new ItemShape(ItemShape.ShapeType.SQUARE, Color.Red, ItemShape.Part.FULL), 10),
-            // Niveau 3 : étoile pleine blanche
+            new LevelDef(new ItemShape(ItemShape.ShapeType.CIRCLE, Color.Red, ItemShape.Part.TOP_LEFT), 10),
+            new LevelDef(new ItemShape(ItemShape.ShapeType.SQUARE, Color.Yellow, ItemShape.Part.FULL), 10),
             new LevelDef(new ItemShape(ItemShape.ShapeType.STAR, Color.White, ItemShape.Part.FULL), 10),
-            // Niveau 4 : étoile jaune superposée sur carré rouge
             new LevelDef(createStackedShape(
-                    new ItemShape(ItemShape.ShapeType.SQUARE, Color.Red, ItemShape.Part.TOP_LEFT),
+                    new ItemShape(ItemShape.ShapeType.SQUARE, Color.Red, ItemShape.Part.FULL),
                     new ItemShape(ItemShape.ShapeType.STAR, Color.Yellow, ItemShape.Part.FULL)), 10)
     };
 
-    private static int defaultStartLevelIndex = 0; // 0 -> niveau 1
+    private static int defaultStartLevelIndex = 0;
 
     private int score = 0;
     private ItemShape targetShape;
@@ -72,7 +68,7 @@ public class ZoneLivraison extends Machine {
         }
 
         if (!(current.getFirst() instanceof ItemShape received)) {
-            current.removeFirst(); // on ignore les items non supportés
+            current.removeFirst();
             return;
         }
 
@@ -84,17 +80,12 @@ public class ZoneLivraison extends Machine {
             advanceLevelIfNeeded();
             System.out.println("Item livre ! " + getProgressLabel());
         } else {
-            current.removeFirst(); // item non conforme
+            current.removeFirst();
         }
     }
 
     @Override
     public void send() {
-        // La zone de livraison ne redirige rien
-    }
-
-    public void setTargetShape(ItemShape targetShape) {
-        this.targetShape = targetShape;
     }
 
     public void configureHalfCircleGoal(int requiredDeliveries) {
@@ -119,7 +110,6 @@ public class ZoneLivraison extends Machine {
         }
 
         if (levelNumber >= levels.length) {
-            // Dernier niveau atteint : on borne le score et on reste sur la cible finale
             score = requiredDeliveries;
             return;
         }

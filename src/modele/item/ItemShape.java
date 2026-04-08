@@ -1,9 +1,5 @@
 package modele.item;
 
-/**
- * Représente une forme unique (non subdivisée) pouvant éventuellement
- * représenter la moitié gauche ou droite après une découpe.
- */
 public class ItemShape extends Item {
 
     public enum ShapeType { CIRCLE, SQUARE, STAR, FAN }
@@ -39,9 +35,6 @@ public class ItemShape extends Item {
         return part;
     }
 
-    /**
-     * Peint la shape si elle est matérielle (part != null).
-     */
     public void Color(Color c) {
         if (c != null) {
             this.color = c;
@@ -51,10 +44,6 @@ public class ItemShape extends Item {
         }
     }
 
-    /**
-     * Découpe la forme en deux moitiés. L'instance courante devient la moitié
-     * gauche et la moitié droite est renvoyée.
-     */
     public ItemShape Cut() {
         switch (part) {
             case FULL -> {
@@ -82,15 +71,11 @@ public class ItemShape extends Item {
                 return bottomRight;
             }
             default -> {
-                return null; // déjà au quart, rien à couper
+                return null;
             }
         }
     }
 
-    /**
-     * Rotation 90° : pour les moitiés, on échange gauche/droite pour rester
-     * cohérent visuellement. Les formes pleines sont inchangées.
-     */
     public void rotate() {
         switch (part) {
             case LEFT -> part = Part.TOP;
@@ -117,10 +102,6 @@ public class ItemShape extends Item {
         return copy;
     }
 
-    /**
-     * Empilement : si les deux formes sont pleines et du même type, on conserve
-     * la base et ignore le dessus (comportement minimal pour préserver API).
-     */
     public void stack(ItemShape top) {
         if (top == null) {
             return;

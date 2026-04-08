@@ -32,7 +32,6 @@ public class Coupeur extends Machine {
 
         current.removeFirst();
 
-        // La forme d'entree est coupée et affectée aux deux sorties
         ItemShape producedSecond = shape.Cut();
         leftOutput = shape;
         rightOutput = producedSecond;
@@ -112,10 +111,6 @@ public class Coupeur extends Machine {
         return c.plateau.getCase(c, getSecondaryOffsetDirection());
     }
 
-    /**
-     * En orientation nord/sud, le cutter occupe deux cases horizontales.
-     * En orientation est/ouest, il occupe deux cases verticales.
-     */
     private Direction getSecondaryOffsetDirection() {
         return d.nextClockwise();
     }
